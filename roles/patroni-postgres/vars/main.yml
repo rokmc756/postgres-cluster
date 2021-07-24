@@ -1,0 +1,45 @@
+---
+
+# files/vmware-postgres-10.17-0.el7.x86_64.rpm
+# files/vmware-postgres-12.7-0.el7.x86_64.rpm
+# files/ vmware-postgres-11.12-0.el7.x86_64.rpm
+major_version: 11
+minor_version: 12
+patch_version: 0
+rhel_version: el7
+database_name: vmware_postgres_testdb
+username: postgres
+
+# Application database name for replication
+# app_database: appdb
+
+# Database names
+# monitor_database: monitor
+# primary_database: ha
+# secondary_database: ha
+# secondary2_database: ha
+
+# Hostnames
+# monitor_hostname: "postgres-monitor"
+# primary_hostname: "postgres-ha01"
+# secondary_hostname: "postgres-ha02"
+# secondary2_hostname: "postgres-ha03"
+
+# install_secondary2: true
+# Package name
+
+# Patroni prerequistes
+urllib3_ver1: 1.19.1
+urllib3_ver2: 1.21
+six_ver: 1.7
+kazoo_ver: 1.3.1
+python-etc_ver1: 0.4.3
+python-etc_ver2: 0.5
+python-consul_ver: 0.7.0
+click_ver: 4.1
+prettytable_ver: 0.7
+psutil_ver: 2.0.0
+kube_ver1: 2.0.0
+kube_ver2: 7.0.0
+kube_ver3: 4.0
+kube_ver4: 5.0

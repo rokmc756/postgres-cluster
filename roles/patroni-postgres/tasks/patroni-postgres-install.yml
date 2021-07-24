@@ -1,0 +1,237 @@
+---
+
+# Install Patroni Cluster for RHEL or CentOS 7.x
+
+- name: Stop and disable firewalld
+  become: true
+  service:
+    name: firewalld
+    state: stopped
+    enabled: false
+
+- name: Flush iptables rules
+  become: true
+  become_user: root
+  shell: ( iptables -F )
+  register: iptables_rules_flushed
+
+- name: List iptables rules
+  become: true
+  become_user: root
+  shell: ( iptables -nL )
+  register: iptables_rules_listed
+
+- debug: msg={{ iptables_rules_listed.stdout }}
+  tags:
+    - print_debug
+
+- name: Copy the vmwawre-postgres rpm file to all hosts in cluster
+  copy: src=vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm dest=/home/jomoon/vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm mode=0644 owner=jomoon group=jomoon
+
+- name: Install VMware Postgres on all hosts as root
+  become: true
+  yum:
+    name: /home/jomoon/vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm
+    state: present
+  async: 120
+  poll: 5
+
+- name: Install the etcd and Patroni prerequisites on all three nodes
+  become: true
+  yum:
+    name: "{{ item }}"
+    state: present
+    skip_broken: yes
+  async: 120
+  poll: 5
+  with_items:
+    - python3
+    - python3-devel
+    - gcc
+    - etcd
+    - python-psycopg2
+    - python3-pip
+    - python34-setuptools
+    - python27-python-setuptools
+    - yamllint
+    - daemonize
+
+- name: Install the dependencies of etcd  on all three nodes
+  become: true
+  become_user: postgres
+  template: src=requirements.txt.j2 dest=/var/lib/pgsql/requirements.txt owner=postgres group=postgres mode=644 force=yes
+  register: patroni_prereq_installed
+  when: inventory_hostname in groups['postgres-ha']
+
+- name: Install setuptools rust on all three nodes
+  become: true
+  become_user: root
+  shell: ( pip3 install setuptools-rust )
+  async: 120
+  poll: 5
+  register: pip3_setuptools_rust_installed
+  when: inventory_hostname in groups['postgres-ha']
+
+- name: Install typing pip module on all three nodes
+  become: true
+  become_user: postgres
+  shell: ( cd /var/lib/pgsql ; pip3 install typing )
+  async: 120
+  poll: 5
+  register: pip3_typing_installed
+  when: inventory_hostname in groups['postgres-ha']
+
+- name: Upgrade pip3 version
+  become: true
+  become_user: root
+  shell: ( pip3 install --upgrade pip )
+  async: 120
+  poll: 5
+  register: pip_upgraded
+  when: inventory_hostname in groups['postgres-ha']
+
+- name: Install wheel pip module on all three nodes
+  become: true
+  become_user: postgres
+  shell: ( cd /var/lib/pgsql ; pip3 install wheel )
+  async: 120
+  poll: 5
+  register: pip3_wheel_installed
+  when: inventory_hostname in groups['postgres-ha']
+
+- name: Install pip modules of Patroni prerequisites on all three nodes
+  become: true
+  become_user: postgres
+  shell: ( pip3 install -r /var/lib/pgsql/requirements.txt )
+  async: 120
+  poll: 5
+  register: pg_autoctl_install_verified
+  when: inventory_hostname in groups['postgres-ha']
+
+- debug: msg={{ pg_autoctl_install_verified }}
+
+- name: Change the permissions on the /tmp directory
+  become: yes
+  become_user: root
+  file:
+    path: /tmp
+    state: directory
+    mode: 0755
+  when: inventory_hostname in groups["postgres-ha"]
+
+# Configuration of etcd
+- name: Create the etcd.yml configuration file for all nodes
+  become: true
+  become_user: postgres
+  template: src=etcd.yml.j2 dest=/var/lib/pgsql/etcd.yml owner=postgres group=postgres mode=644 force=yes
+  register: etcd_config_created
+  when: inventory_hostname in groups["postgres-ha"]
+
+- debug: msg={{ etcd_config_created }}
+
+- name: Start up etcd on all nodes
+  become: true
+  become_user: postgres
+  shell: ( etcd --config-file /var/lib/pgsql/etcd.yml > /var/lib/pgsql/etcd_logfile 2>&1 & )
+  async: 1000
+  poll: 0
+  register: etcd_started
+  when: inventory_hostname in groups["postgres-ha"]
+
+- debug: msg={{ etcd_started }}
+
+- name: Lists the members and identifies the current Leader.
+  become: true
+  become_user: postgres
+  shell: ( export ETCDCTL_API=3 && etcdctl member list )
+  register: members_leader_listed
+  when: inventory_hostname in groups["postgres-ha"]
+
+- debug: msg={{ members_leader_listed }}
+
+- name: Set data directory for patroni cluster
+  become: true
+  file: path=/var/lib/pgsql/patroni_data state=directory owner=postgres group=postgres
+
+# posgres-ha01
+- name: Create the postgresql10.yml configuration file for all nodes
+  become: true
+  become_user: postgres
+  template: src=patroni.yml.j2 dest=/var/lib/pgsql/patroni.yml owner=postgres group=postgres mode=644 force=yes
+  register: patroni_config_created
+  when: inventory_hostname in groups["postgres-ha"]
+
+- debug: msg={{ patroni_config_created }}
+
+  #- name: Start Patroni on all nodes
+  #become: true
+  #become_user: postgres
+  #shell: ( patroni /var/lib/pgsql/postgresql0.yml > /var/lib/pgsql/patroni_member.log 2>&1 & )
+  #register: patroni_started
+  #when: inventory_hostname in groups["postgres-ha"]
+
+  #- debug: msg={{ patroni_started }}
+
+- name: Copy systemd configuration of patroni into /etc/systemd/system
+  become: true
+  become_user: root
+  template: src=patroni.systemd.j2 dest=/etc/systemd/system/patroni.service owner=root group=root mode=644 force=yes
+  when: inventory_hostname in groups["postgres-ha"]
+
+# Start services for zookeeper and kafka
+- name: Reload and start systemd service of patroni
+  become: true
+  systemd:
+    daemon_reload: yes
+    name: patroni
+    enabled: yes
+    state: started
+  when: inventory_hostname in groups["postgres-ha"]
+#  when: inventory_hostname == "postgres-ha01"
+
+- name: Pause for 1 minutes to wait for compleiting initializaion of patroni cluster
+  pause:
+    minutes: 1
+  when: inventory_hostname in groups["postgres-ha"]
+
+# Verified
+#- name: Run the patronictl command-line utility to view the cluster state with Patroni started on all three nodes,
+#  become: true
+#  become_user: postgres
+#  shell: ( patronictl -c /var/lib/pgsql/patroni.yml list )
+#  register: patroni_listed
+#  when: inventory_hostname in groups["postgres-ha"]
+
+#- debug: msg={{ patroni_listed }}
+
+- name: Reinitialize patroni clsuter on all node
+  become: true
+  become_user: postgres
+  ignore_errors: true
+  shell: |
+    export LC_ALL=en_US.utf-8 && patronictl -c /var/lib/pgsql/patroni.yml reinit vmtz_patroni_cluster <<EOF
+    {{ inventory_hostname }}
+    y
+    y
+    EOF
+  async: 60
+  poll: 5
+  register: patroni_reinitialized
+  when: inventory_hostname in groups["postgres-ha"]
+
+- name: Pause for 1 minutes to wait for compleiting initializaion of patroni cluster
+  pause:
+    minutes: 1
+  when: inventory_hostname in groups["postgres-ha"]
+
+- debug: msg={{ patroni_reinitialized }}
+
+- name: Run the patronictl command-line utility to view the cluster state with Patroni started on all three nodes,
+  become: true
+  become_user: postgres
+  shell: ( export LC_ALL=en_US.utf-8 && patronictl -c /var/lib/pgsql/patroni.yml list )
+  register: patroni_listed
+  when: inventory_hostname in groups["postgres-ha"]
+
+- debug: msg={{ patroni_listed }}
+

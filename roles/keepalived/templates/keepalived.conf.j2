@@ -1,29 +1,59 @@
+ ! Configuration File for keepalived
 global_defs {
-   router_id ocp_vrrp
-   enable_script_security
-   script_user root
+    enable_script_security
+    script_user root
 }
- 
-vrrp_script haproxy_check {
-   script "/usr/libexec/keepalived/haproxy_check.sh"
-   interval 2
-   weight 2
+vrrp_script chk_service {           # Requires keepalived-1.1.13
+        script /etc/keepalived/{{ keepalived_check_script_name }}.sh
+        interval 2                      # check every 2 seconds
 }
- 
 vrrp_instance VI_1 {
-   interface {{ vip_interface }}
-   virtual_router_id {{ cluster_vip.split('.')[3] | int }}
-   priority  100
-   advert_int 2
-   state  BACKUP
-   virtual_ipaddress {
-       {{ cluster_vip  }}
-   }
-   track_script {
-       haproxy_check
-   }
-   authentication {
-      auth_type PASS
-      auth_pass 1ce24b6e
-   }
+    state {{ keepalived_role }}
+    interface {{ keepalived_shared_iface }}
+    virtual_router_id {{ keepalived_router_id }}
+    {% if keepalived_role.lower() == "master" %}
+    priority {{ keepalived_priority }}
+    {% else %}
+    priority {{ keepalived_backup_priority }}
+    {% endif %}   
+    advert_int 1
+    {% if keepalived_unicast_mode | default(False) %}
+    unicast_src_ip {{ keepalived_unicast_source }}
+    unicast_peer {
+      {% for peer in keepalived_unicast_peers %}
+        {{ peer }}
+      {% endfor %}
+    }
+    {% endif %}
+    authentication {
+        auth_type PASS
+        auth_pass {{ keepalived_auth_pass }}
+    }
+    virtual_ipaddress {
+    {% if keepalived_shared_ip | default(False) %}
+      {{ keepalived_shared_ip }} dev {{ keepalived_shared_iface }}
+    {% else %}
+      {% for ip in keepalived_shared_ips | default([]) %}
+          {{ ip }} dev {{ keepalived_shared_iface }}
+      {% endfor %}
+    {% endif %}
+    }
+    track_script {
+        chk_service
+    }
+    {% if keepalived_notification_email | default(False) %}
+    notify /etc/keepalived/email_notify.sh
+    {% endif %}
+    {% if keepalived_notification_script | default(False) %}
+    notify {{ keepalived_notification_script }}
+    {% endif %}
+    {% if keepalived_notification_command_backup | default(False) %}
+    notify_backup "{{ keepalived_notification_command_backup }}"
+    {% endif %}
+    {% if keepalived_notification_command_master | default(False) %}
+    notify_master "{{ keepalived_notification_command_master }}"
+    {% endif %}
+    {% if keepalived_notification_command_fault | default(False) %}
+    notify_fault "{{ keepalived_notification_command_fault }}"
+    {% endif %}
 }

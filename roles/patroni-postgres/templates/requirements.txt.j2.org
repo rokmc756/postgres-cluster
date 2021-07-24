@@ -1,0 +1,15 @@
+urllib3>={{ urllib3_ver1 }},!={{ urllib3_ver2 }}
+boto
+PyYAML
+requests
+six >= {{ six_ver }}
+kazoo>={{ kazoo_ver }}
+python-etcd>={{ python-etc_ver }},<{{ python-etc_ver2 }}
+python-consul>={{ python-consul_ver }}
+click>={{ click_ver }}
+prettytable>={{ prettytable_ver }}
+tzlocal
+python-dateutil
+psutil>={{ psutil_ver }}
+cdiff
+kubernetes>={{ kube_ver1 }},<={ kube_ver2 }},!={{ kube_ver3 }}.*,!={{ kube_ver4 }}.*

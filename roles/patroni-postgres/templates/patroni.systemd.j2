@@ -1,0 +1,17 @@
+[Unit]
+Description=patroni service
+After=etcd.service syslog.target network.target
+
+[Service]
+User=postgres
+Group=postgres
+Type=simple
+#ExecStartPre=-/usr/bin/sudo /sbin/modprobe softdog
+#ExecStartPre=-/usr/bin/sudo /bin/chown postgres /dev/watchdog
+ExecStart=/usr/bin/patroni /var/lib/pgsql/patroni.yml
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=process
+Restart=no
+TimeoutSec=30
+
+[Install]

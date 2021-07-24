@@ -1,0 +1,40 @@
+---
+# https://blog.dbi-services.com/using-ansible-to-bring-up-a-three-node-patroni-cluster-in-minutes/
+
+- name: Install all rpm packages for haproxy
+  become: true
+  yum: name={{item}} state=present
+  with_items:
+   - bind-utils
+   - haproxy
+  when: not inventory_hostname in groups['postgres-ha']
+
+- name: Copy haproxy.cfg
+  become: true
+  template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: "{{ postgres_user }}"
+    group: "{{ postgres_group }}"
+    mode: 0600
+  when: not inventory_hostname in groups['postgres-ha']
+
+- name: force systemd to reread configs
+  become: true
+  systemd:
+    daemon_reload: yes
+  when: not inventory_hostname in groups['postgres-ha']
+
+- name: Enable the systemd haproxy service
+  become: true
+  systemd:
+    name: haproxy
+    enabled: yes
+    state: restarted
+  when: not inventory_hostname in groups['postgres-ha']
+
+# we need to set this so haproxy can be started
+- name: Set selinux context for ha proxy
+  become: true
+  shell: setsebool -P haproxy_connect_any=1
+  when: not inventory_hostname in groups['postgres-ha']

@@ -1,0 +1,43 @@
+#jinja2: trim_blocks:False
+global
+    maxconn 100
+
+defaults
+    log global
+    mode tcp
+    retries 2
+    timeout client 30m
+    timeout connect 4s
+    timeout server 30m
+    timeout check 5s
+
+listen stats
+    mode http
+    bind *:7000
+    stats enable
+    stats uri /
+    # stats auth haproxy:haproxy
+    # stats refresh 10s
+
+listen httpcheck
+    bind *:5000
+    option httpchk
+    http-check expect status 200
+    default-server inter 3s fall 3 rise 2 on-marked-down shutdown-sessions
+    {%- for h in groups['postgres-ha'] %}
+    server postgresql_{{ hostvars[h]['ansible_eth0']['ipv4']['address'] }}_5432 {{ hostvars[h]['ansible_eth0']['ipv4']['address'] }}:5432 maxconn 100 check port 8008
+    {% endfor %}
+
+listen  {{ cluster_name }}
+    bind *:{{ pgsql_wrapping_port }}
+    mode tcp
+    timeout client  10800s
+    timeout server  10800s
+    tcp-check connect port 9201
+    tcp-check expect string is\ running
+    balance {{ load_balancing_algorithm }}
+    option tcp-check
+    default-server port 9201 inter 2s downinter 5s rise 3 fall 2 slowstart 60s maxconn 64 maxqueue 128 weight 100
+    {%- for h in groups['postgres-ha'] %}
+    server {{ h }} {{ hostvars[h]['ansible_eth0']['ipv4']['address'] }}:5432
+    {% endfor %}

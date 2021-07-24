@@ -1,0 +1,13 @@
+cluster_name: pgsql-bdr
+postgres_user: postgres
+postgres_group: postgres
+pgsql_wrapping_port: 15432
+balance_algorithm: roundrobin
+global_max_connections: 4096
+defaults_max_connections: 2000
+haproxy_user: haproxy
+haproxy_group: haproxy
+frontend_port: 1949
+stats_port: 8182
+stats_user: pgadmin
+stats_pass: changeme

@@ -1,0 +1,73 @@
+---
+# Uninstall PXF on GPDB for Red Hat
+
+- name: Check if the pxf cluster is runnong on each segment host
+  become_user: gpadmin
+  shell: ( source ~/.bashrc && pxf cluster status )
+  register: pxf_running_checked
+  when:
+    - inventory_hostname in groups['master']
+
+- name: Run the pxf cluster stop command to stop PXF on each segment host
+  become_user: gpadmin
+  shell: ( source ~/.bashrc && pxf cluster stop )
+  when:
+    - inventory_hostname in groups['master']
+    - "'PXF is running on' in pxf_running_checked.stdout"
+
+- name: Remove the PXF library
+  become_user: gpadmin
+  file:
+    path: "{{ gpdb_base_dir }}/greenplum-db/lib/postgresql/pxf.so"
+    state: absent
+
+- name: Find the PXF extension files named with pxf under extension directory
+  find:
+    paths: "{{ gpdb_base_dir }}/greenplum-db/share/postgresql/extension"
+    patterns: "^pxf*"
+  register: wildcard_files_to_delete
+
+- name: Remove the PXF extension files named with pxf under extension directory
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  with_items: "{{ wildcard_files_to_delete.files }}"
+
+- name: Remove PXF rpm package
+  yum: name="pxf-gp6" state=absent
+  when: ( ansible_distribution == "RedHat" or ansible_distribution == "CentOS" ) and ansible_distribution_major_version|int >= 5
+
+- name: Check if PXF extension is installed on GPDB
+  become_user: gpadmin
+  shell: ( . {{ gpdb_base_dir }}/greenplum-db/greenplum_path.sh && psql -d {{ pxf_database_name }} -t -c "select count(*) FROM pg_extension where extname='pxf';" | tr -d " " | sed '/^$/d' )
+  register: pxf_extension_install_checked
+  when:
+    - inventory_hostname in groups['master']
+
+# - debug: msg={{ pxf_extension_install_checked.stdout }}
+#  when:
+#    - inventory_hostname in groups['master']
+#
+# - meta: end_play
+
+- name: Drop PXF extension
+  become_user: gpadmin
+  shell: ( . {{ gpdb_base_dir }}/greenplum-db/greenplum_path.sh && psql -d {{ pxf_database_name }} -c "DROP EXTENSION pxf;")
+  register: pxf_extension_dropped
+  when:
+    - inventory_hostname in groups['master']
+    - "'1' in pxf_extension_install_checked.stdout"
+
+- name: Drop database for PXF
+  become_user: gpadmin
+  shell: ( . {{ gpdb_base_dir }}/greenplum-db/greenplum_path.sh && dropdb {{ pxf_database_name }} )
+  register: pxf_database_dropped
+  when:
+    - inventory_hostname in groups['master']
+
+- name: Drop User for PXF
+  become_user: gpadmin
+  shell: ( . {{ gpdb_base_dir }}/greenplum-db/greenplum_path.sh && psql -c "DROP USER {{ pxf_username }};" )
+  register: pxf_user_dropped
+  when:
+    - inventory_hostname in groups['master']
