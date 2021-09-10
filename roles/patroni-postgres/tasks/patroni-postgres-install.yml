@@ -1,7 +1,7 @@
 ---
-
+#
 # Install Patroni Cluster for RHEL or CentOS 7.x
-
+#
 - name: Stop and disable firewalld
   become: true
   service:
@@ -9,12 +9,14 @@
     state: stopped
     enabled: false
 
+#
 - name: Flush iptables rules
   become: true
   become_user: root
   shell: ( iptables -F )
   register: iptables_rules_flushed
 
+#
 - name: List iptables rules
   become: true
   become_user: root
@@ -25,9 +27,11 @@
   tags:
     - print_debug
 
+#
 - name: Copy the vmwawre-postgres rpm file to all hosts in cluster
   copy: src=vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm dest=/home/jomoon/vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm mode=0644 owner=jomoon group=jomoon
 
+#
 - name: Install VMware Postgres on all hosts as root
   become: true
   yum:
@@ -36,6 +40,7 @@
   async: 120
   poll: 5
 
+#
 - name: Install the etcd and Patroni prerequisites on all three nodes
   become: true
   yum:
@@ -56,6 +61,7 @@
     - yamllint
     - daemonize
 
+#
 - name: Install the dependencies of etcd  on all three nodes
   become: true
   become_user: postgres
@@ -63,6 +69,7 @@
   register: patroni_prereq_installed
   when: inventory_hostname in groups['postgres-ha']
 
+#
 - name: Install setuptools rust on all three nodes
   become: true
   become_user: root
@@ -72,6 +79,7 @@
   register: pip3_setuptools_rust_installed
   when: inventory_hostname in groups['postgres-ha']
 
+#
 - name: Install typing pip module on all three nodes
   become: true
   become_user: postgres
@@ -81,6 +89,7 @@
   register: pip3_typing_installed
   when: inventory_hostname in groups['postgres-ha']
 
+#
 - name: Upgrade pip3 version
   become: true
   become_user: root
@@ -90,7 +99,8 @@
   register: pip_upgraded
   when: inventory_hostname in groups['postgres-ha']
 
-- name: Install wheel pip module on all three nodes
+#
+- name: Install wheel module on all three nodes
   become: true
   become_user: postgres
   shell: ( cd /var/lib/pgsql ; pip3 install wheel )
@@ -99,17 +109,60 @@
   register: pip3_wheel_installed
   when: inventory_hostname in groups['postgres-ha']
 
+- debug: msg={{ pip3_wheel_installed }}
+
+#
 - name: Install pip modules of Patroni prerequisites on all three nodes
   become: true
   become_user: postgres
   shell: ( pip3 install -r /var/lib/pgsql/requirements.txt )
   async: 120
   poll: 5
-  register: pg_autoctl_install_verified
+  register: patroni_prerequisites_verified
   when: inventory_hostname in groups['postgres-ha']
 
-- debug: msg={{ pg_autoctl_install_verified }}
+- debug: msg={{ patroni_prerequisites_verified }}
 
+#
+- name: Iinstall wheel module on all three nodes
+  become: true
+  become_user: root
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 install wheel )
+  async: 120
+  poll: 5
+  register: pip3_wheel_module_installed
+  when:
+    - major_version == 13
+    - inventory_hostname in groups['postgres-ha']
+
+- debug: msg={{ pip3_wheel_module_installed }}
+
+- name: Install psycopg2-binary module on all three nodes
+  become: true
+  become_user: root
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 install psycopg2-binary )
+  async: 120
+  poll: 5
+  register: pip3_psycopg2_binary_module_installed
+  when:
+    - major_version == 13
+    - inventory_hostname in groups['postgres-ha']
+
+- debug: msg={{ pip3_psycopg2_binary_module_installed }}
+
+#
+- name: Install patroni modules on all three nodes for vmware-postgres 13.x version
+  become: true
+  become_user: root
+  shell: ( pip3 install patroni )
+  async: 120
+  poll: 5
+  register: patroni_module_install_verified
+  when:
+    - major_version == 13
+    - inventory_hostname in groups['postgres-ha']
+
+#
 - name: Change the permissions on the /tmp directory
   become: yes
   become_user: root
@@ -119,7 +172,7 @@
     mode: 0755
   when: inventory_hostname in groups["postgres-ha"]
 
-# Configuration of etcd
+#
 - name: Create the etcd.yml configuration file for all nodes
   become: true
   become_user: postgres
@@ -129,17 +182,41 @@
 
 - debug: msg={{ etcd_config_created }}
 
-- name: Start up etcd on all nodes
+#
+#- name: Start up etcd on all nodes
+#  become: true
+#  become_user: postgres
+#  shell: ( etcd --config-file /var/lib/pgsql/etcd.yml > /var/lib/pgsql/etcd_logfile 2>&1 & )
+#  async: 1000
+#  poll: 0
+#  register: etcd_started
+#  when: inventory_hostname in groups["postgres-ha"]
+#
+#- debug: msg={{ etcd_started }}
+
+########################################################################################
+#
+- name: Copy systemd configuration of etcd into /etc/systemd/system
   become: true
-  become_user: postgres
-  shell: ( etcd --config-file /var/lib/pgsql/etcd.yml > /var/lib/pgsql/etcd_logfile 2>&1 & )
-  async: 1000
-  poll: 0
-  register: etcd_started
+  become_user: root
+  template: src=etcd.systemd.j2 dest=/etc/systemd/system/etcd.service owner=root group=root mode=644 force=yes
   when: inventory_hostname in groups["postgres-ha"]
 
-- debug: msg={{ etcd_started }}
+#
+- name: Reload and start systemd service of etcd
+  become: true
+  systemd:
+    daemon_reload: yes
+    name: etcd
+    enabled: yes
+    state: started
+  when: inventory_hostname in groups["postgres-ha"]
+#  when: inventory_hostname == "postgres-ha01"
 
+
+#########################################################################################
+
+#
 - name: Lists the members and identifies the current Leader.
   become: true
   become_user: postgres
@@ -149,11 +226,12 @@
 
 - debug: msg={{ members_leader_listed }}
 
+#
 - name: Set data directory for patroni cluster
   become: true
   file: path=/var/lib/pgsql/patroni_data state=directory owner=postgres group=postgres
 
-# posgres-ha01
+#
 - name: Create the postgresql10.yml configuration file for all nodes
   become: true
   become_user: postgres
@@ -163,15 +241,7 @@
 
 - debug: msg={{ patroni_config_created }}
 
-  #- name: Start Patroni on all nodes
-  #become: true
-  #become_user: postgres
-  #shell: ( patroni /var/lib/pgsql/postgresql0.yml > /var/lib/pgsql/patroni_member.log 2>&1 & )
-  #register: patroni_started
-  #when: inventory_hostname in groups["postgres-ha"]
-
-  #- debug: msg={{ patroni_started }}
-
+#
 - name: Copy systemd configuration of patroni into /etc/systemd/system
   become: true
   become_user: root
@@ -189,6 +259,7 @@
   when: inventory_hostname in groups["postgres-ha"]
 #  when: inventory_hostname == "postgres-ha01"
 
+#
 - name: Pause for 1 minutes to wait for compleiting initializaion of patroni cluster
   pause:
     minutes: 1
@@ -198,27 +269,52 @@
 #- name: Run the patronictl command-line utility to view the cluster state with Patroni started on all three nodes,
 #  become: true
 #  become_user: postgres
-#  shell: ( patronictl -c /var/lib/pgsql/patroni.yml list )
+#  shell: ( {{ patronictl_bin_path }} -c /var/lib/pgsql/patroni.yml list )
 #  register: patroni_listed
 #  when: inventory_hostname in groups["postgres-ha"]
-
+#
 #- debug: msg={{ patroni_listed }}
 
+#
+- name: Remove clsuter on master
+  become: true
+  become_user: postgres
+  ignore_errors: true
+  shell: |
+    export LC_ALL=en_US.utf-8 && {{ patronictl_bin_path }} -c /var/lib/pgsql/patroni.yml remove vmtz_patroni_cluster <<EOF
+    vmtz_patroni_cluster
+    Yes I am aware
+    EOF
+  async: 180
+  poll: 5
+  register: patroni_removed
+  when: inventory_hostname in groups["master"]
+
+- name: Pause for 1 minutes to wait for compleiting initializaion of patroni cluster
+  pause:
+    minutes: 1
+  when: inventory_hostname in groups["postgres-ha"]
+
+- debug: msg={{ patroni_removed }}
+#
 - name: Reinitialize patroni clsuter on all node
   become: true
   become_user: postgres
   ignore_errors: true
   shell: |
-    export LC_ALL=en_US.utf-8 && patronictl -c /var/lib/pgsql/patroni.yml reinit vmtz_patroni_cluster <<EOF
+    export LC_ALL=en_US.utf-8 && {{ patronictl_bin_path }} -c /var/lib/pgsql/patroni.yml reinit vmtz_patroni_cluster <<EOF
     {{ inventory_hostname }}
     y
     y
     EOF
-  async: 60
+  async: 180
   poll: 5
   register: patroni_reinitialized
   when: inventory_hostname in groups["postgres-ha"]
 
+- debug: msg={{ patroni_reinitialized }}
+
+#
 - name: Pause for 1 minutes to wait for compleiting initializaion of patroni cluster
   pause:
     minutes: 1
@@ -226,10 +322,11 @@
 
 - debug: msg={{ patroni_reinitialized }}
 
+#
 - name: Run the patronictl command-line utility to view the cluster state with Patroni started on all three nodes,
   become: true
   become_user: postgres
-  shell: ( export LC_ALL=en_US.utf-8 && patronictl -c /var/lib/pgsql/patroni.yml list )
+  shell: ( export LC_ALL=en_US.utf-8 && {{ patronictl_bin_path }} -c /var/lib/pgsql/patroni.yml list )
   register: patroni_listed
   when: inventory_hostname in groups["postgres-ha"]
 

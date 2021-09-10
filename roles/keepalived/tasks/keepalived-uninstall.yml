@@ -1,1 +1,66 @@
+---
+# This role installs and sets up keepalived
 
+# 1
+- name: Stop keepalived
+  become: true
+  systemd:
+    name: keepalived
+    state: stopped
+    enabled: no
+#  tags: keepalived
+
+# 2
+- name: Uninstall keepalived RPM package
+  become: true
+  package:
+    name: keepalived
+    state: absent
+  tags: keepalived
+# notify: restart keepalived
+
+# 3
+- name: Keepalived configuration
+  become: true
+  become_user: root
+  file:
+    dest: /etc/keepalived/keepalived.conf
+    state: absent
+  tags: keepalived
+#  notify: restart keepalived
+
+# 4
+- name: Uninstall email notification script
+  become: true
+  become_user: root
+  file:
+    path: "/etc/keepalived/email_notify.sh"
+    state: absent
+  tags: keepalived
+#  notify: restart keepalived
+
+# 5
+- name: Uninstall check script
+  become: true
+  become_user: root
+  file:
+    path: "/etc/keepalived/{{ keepalived_check_script_name }}.sh"
+    state: absent
+  tags: keepalived
+#  notify: restart keepalived
+
+# 6
+- when: keepalived_notifications_email | default(False)
+  block:
+  - name: Stop and disable postfix
+    become: true
+    systemd:
+      name: postfix
+      state: stopped
+      enabled: no
+
+  - name: Uninstall postfix to send notifications
+    become: true
+    package:
+      name: ['postfix', 'mailutils']
+      state: absent

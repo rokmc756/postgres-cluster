@@ -3,12 +3,16 @@
 # files/vmware-postgres-10.17-0.el7.x86_64.rpm
 # files/vmware-postgres-12.7-0.el7.x86_64.rpm
 # files/ vmware-postgres-11.12-0.el7.x86_64.rpm
-major_version: 11
-minor_version: 12
+major_version: 13
+minor_version: 3
 patch_version: 0
 rhel_version: el7
 database_name: vmware_postgres_testdb
 username: postgres
+patroni_bin_path: "/usr/local/bin/patroni"
+patronictl_bin_path: "/usr/local/bin/patronictl"
+# patronictl_bin_path: "/var/lib/pgsql/.local/bin/patronictl"
+# patronictl_bin_path: "/usr/bin/patronictl"
 
 # Application database name for replication
 # app_database: appdb

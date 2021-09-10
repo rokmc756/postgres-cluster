@@ -1,0 +1,15 @@
+---
+
+- hosts: all
+  roles:
+    - pgsql94-bdr
+    - haproxy
+
+- hosts: postgres-haproxy01
+  roles:
+     - { role: keepalived, keepalived_shared_ip: "192.168.0.79", keepalived_role: "master" }
+
+- hosts: postgres-haproxy02
+  roles:
+     - { role: keepalived, keepalived_shared_ip: "192.168.0.80", keepalived_role: "slave" }
+

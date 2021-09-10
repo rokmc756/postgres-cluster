@@ -1,1 +1,42 @@
 ---
+# https://blog.dbi-services.com/using-ansible-to-bring-up-a-three-node-patroni-cluster-in-minutes/
+
+# 1
+# we need to set this so that haproxy can not be started
+- name: Set selinux context for haproxy
+  become: true
+  shell: setsebool -P haproxy_connect_any=0
+  when: not inventory_hostname in groups['postgres-ha']
+
+# 2
+- name: Disable the systemd haproxy service
+  become: true
+  systemd:
+    name: haproxy
+    enabled: no
+    state: stopped
+  when: not inventory_hostname in groups['postgres-ha']
+
+# 3
+- name: force systemd to reread configs
+  become: true
+  systemd:
+    daemon_reload: yes
+  when: not inventory_hostname in groups['postgres-ha']
+
+# 4
+- name: Uninstall all rpm packages for haproxy
+  become: true
+  yum: name={{item}} state=absent
+  with_items:
+   - bind-utils
+   - haproxy
+  when: not inventory_hostname in groups['postgres-ha']
+
+# 5
+- name: Delete haproxy.cfg
+  become: true
+  file:
+    path: /etc/haproxy/haproxy.cfg
+    state: absent
+  when: not inventory_hostname in groups['postgres-ha']

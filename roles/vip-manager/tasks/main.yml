@@ -113,4 +113,3 @@
 - name: Make sure handlers are flushed immediately
   meta: flush_handlers
 
-...

@@ -1,2 +1,232 @@
 ---
-# Uninstall Patroni on GPDB for Red Hat
+# Uninstall Patroni Cluster for RHEL or CentOS 7.x
+#
+- name: Stop services for patroni and etcd
+  become: true
+  systemd:
+    name: patroni
+    enabled: no
+    state: stopped
+  with_items:
+    - patroni
+    - etcd
+  ignore_errors: yes
+  when: inventory_hostname in groups["postgres-ha"]
+
+# become_user: postgres
+- name: Kill etcd process
+  become: true
+  become_user: postgres
+  shell: ( killall etcd )
+  async: 60
+  poll: 5
+  ignore_errors: yes
+  when: inventory_hostname in groups['postgres-ha']
+
+
+#
+- name: Delete configuration file for patroni and systemd
+  become: true
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "/var/lib/pgsql/patroni.yml"
+    - "/etc/systemd/system/patroni.service"
+    - "/var/lib/pgsql/postgresql0.yml"
+    - "/var/lib/pgsql/patroni_member.log"
+    - "/var/lib/pgsql/etcd.yml"
+    - "/var/lib/pgsql/etcd_logfile"
+
+#
+- name: Delete data directory for patroni cluster
+  become: true
+  file:
+    path: /var/lib/pgsql/patroni_data
+    state: absent
+
+#
+- name: Change the permissions on the /tmp directory
+  become: yes
+  become_user: root
+  file:
+    path: /tmp
+    state: directory
+    mode: 0755
+  when: inventory_hostname in groups["postgres-ha"]
+
+#  shell: |
+#    export LC_ALL=en_US.utf-8 && patronictl -c /var/lib/pgsql/patroni.yml reinit vmtz_patroni_cluster <<EOF
+#    {{ inventory_hostname }}
+#    y
+#    y
+#    EOF
+
+#
+# become_user: postgres
+- name: Uninstall pip modules of Patroni prerequisites on all three nodes
+  become: true
+  become_user: root
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 uninstall -r /var/lib/pgsql/requirements.txt -y )
+  async: 120
+  poll: 5
+  register: pg_autoctl_uninstall_verified
+  ignore_errors: yes
+  when: inventory_hostname in groups['postgres-ha']
+
+#- debug: msg={{ pg_autoctl_uninstall_verified }}
+
+#
+- name: Install wheel pip module on all three nodes
+  become: true
+  become_user: postgres
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 uninstall wheel -y )
+  async: 120
+  poll: 5
+  register: pip3_wheel_installed
+  when: inventory_hostname in groups['postgres-ha']
+
+#- debug: msg={{ pip3_wheel_installed }}
+
+# become_user: root
+#- name: Delete pip3 version
+#  become: true
+#  become_user: root
+#  shell: ( export PATH=$PATH:/usr/local/bin && pip3 uninstall pip -y )
+#  async: 120
+#  poll: 5
+#  register: pip_upgraded
+#  when: inventory_hostname in groups['postgres-ha']
+
+#- debug: msg={{ pip_upgraded }}
+
+#
+- name: Uninstall typing pip module on all three nodes
+  become: true
+  become_user: postgres
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 uninstall typing -y )
+  async: 120
+  poll: 5
+  register: pip3_typing_uninstalled
+  when: inventory_hostname in groups['postgres-ha']
+
+#- debug: msg={{ pip3_typing_uninstalled }}
+
+#
+- name: Uninstall setuptools rust on all three nodes
+  become: true
+  become_user: root
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 uninstall setuptools-rust -y )
+  async: 120
+  poll: 5
+  register: pip3_setuptools_rust_uninstalled
+  when: inventory_hostname in groups['postgres-ha']
+
+#- debug: msg={{ pip3_setuptools_rust_uninstalled }}
+#
+- name: Uninstall patroni module on all three nodes
+  become: true
+  become_user: root
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 uninstall patroni -y )
+  async: 120
+  poll: 5
+  register: pip3_patroni_module_uninstalled
+  when:
+    - major_version == 13
+    - inventory_hostname in groups['postgres-ha']
+
+- name: Uninstall wheel module on all three nodes
+  become: true
+  become_user: root
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 uninstall wheel -y )
+  async: 120
+  poll: 5
+  register: pip3_wheel_module_uninstalled
+  when:
+    - major_version == 13
+    - inventory_hostname in groups['postgres-ha']
+
+#
+- name: Uninstall psycopg2-binary module on all three nodes
+  become: true
+  become_user: root
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 uninstall psycopg2-binary -y )
+  async: 120
+  poll: 5
+  register: pip3_psycopg2_binary_module_uninstalled
+  when:
+    - major_version == 13
+    - inventory_hostname in groups['postgres-ha']
+
+#
+- name: Delete the dependencies file of etcd  on all three nodes
+  become: true
+  become_user: postgres
+  file:
+    path: /var/lib/pgsql/requirements.txt
+    state: absent
+  register: patroni_prereq_uninstalled
+  when: inventory_hostname in groups['postgres-ha']
+
+#
+#- name: Uninstall RPM packages of the etcd and Patroni prerequisites on all three nodes
+#  become: true
+#  yum:
+#    name: "{{ item }}"
+#    state: absent
+#    skip_broken: yes
+#  async: 120
+#  poll: 5
+#  with_items:
+#    - python3
+#    - python3-devel
+#    - gcc
+#    - etcd
+#    - python-psycopg2
+#    - python3-pip
+#    - python34-setuptools
+#    - python27-python-setuptools
+#    - yamllint
+#    - daemonize
+
+#
+- name: Uninstall VMware Postgres RPM package on all hosts as root
+  become: true
+  yum:
+    name: vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}
+    state: absent
+  async: 120
+  poll: 5
+
+#
+- name: Delete the vmwawre-postgres rpm file to all hosts in cluster
+  become: true
+  file:
+    path: /home/jomoon/vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm
+    state: absent
+
+#
+- name: List iptables rules
+  become: true
+  become_user: root
+  shell: ( iptables -nL )
+  register: iptables_rules_listed
+
+#- debug: msg={{ iptables_rules_listed.stdout }}
+#  tags:
+#    - print_debug
+
+#
+- name: Flush iptables rules
+  become: true
+  become_user: root
+  shell: ( iptables -F )
+  register: iptables_rules_flushed
+
+#
+- name: Stop and disable firewalld
+  become: true
+  service:
+    name: firewalld
+    state: stopped
+    enabled: false

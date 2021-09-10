@@ -1,73 +1,221 @@
 ---
-# Uninstall PXF on GPDB for Red Hat
+# Uninstall pg_auto_failover for RHEL or CentOS
 
-- name: Check if the pxf cluster is runnong on each segment host
-  become_user: gpadmin
-  shell: ( source ~/.bashrc && pxf cluster status )
-  register: pxf_running_checked
-  when:
-    - inventory_hostname in groups['master']
+- name: Disable port from public zone
+  become: true
+  firewalld:
+    port: '{{item}}/tcp'
+    permanent: true
+    state: disabled
+    zone: public
+    immediate: yes
+  with_items:
+    - '5432'
 
-- name: Run the pxf cluster stop command to stop PXF on each segment host
-  become_user: gpadmin
-  shell: ( source ~/.bashrc && pxf cluster stop )
-  when:
-    - inventory_hostname in groups['master']
-    - "'PXF is running on' in pxf_running_checked.stdout"
+- name: Disable IP Addresses in whitelist
+  become: true
+  firewalld:
+    zone: public
+    rich_rule: "rule family=ipv4 source address={{ hostvars[item]['ansible_eth0']['ipv4']['address'] }} accept"
+    permanent: true
+    state: disabled
+  with_items:
+    - "{{ groups['all'] }}"
 
-- name: Remove the PXF library
-  become_user: gpadmin
-  file:
-    path: "{{ gpdb_base_dir }}/greenplum-db/lib/postgresql/pxf.so"
-    state: absent
+- name: Bounce firewalld
+  become: true
+  become_user: root
+  service: name=firewalld state=restarted
 
-- name: Find the PXF extension files named with pxf under extension directory
-  find:
-    paths: "{{ gpdb_base_dir }}/greenplum-db/share/postgresql/extension"
-    patterns: "^pxf*"
-  register: wildcard_files_to_delete
+# This will create the Postgres user. You can add the Postgres user to sudoers:
+# echo "postgres  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/postgres
+- name: Verify that pg_auto_failover/postgres was installed properly
+  become: true
+  become_user: postgres
+  shell: ( pg_autoctl version )
+  register: pg_autoctl_install_verified
+  when: inventory_hostname in groups['monitor']
 
-- name: Remove the PXF extension files named with pxf under extension directory
-  file:
-    path: "{{ item.path }}"
-    state: absent
-  with_items: "{{ wildcard_files_to_delete.files }}"
-
-- name: Remove PXF rpm package
-  yum: name="pxf-gp6" state=absent
-  when: ( ansible_distribution == "RedHat" or ansible_distribution == "CentOS" ) and ansible_distribution_major_version|int >= 5
-
-- name: Check if PXF extension is installed on GPDB
-  become_user: gpadmin
-  shell: ( . {{ gpdb_base_dir }}/greenplum-db/greenplum_path.sh && psql -d {{ pxf_database_name }} -t -c "select count(*) FROM pg_extension where extname='pxf';" | tr -d " " | sed '/^$/d' )
-  register: pxf_extension_install_checked
-  when:
-    - inventory_hostname in groups['master']
-
-# - debug: msg={{ pxf_extension_install_checked.stdout }}
-#  when:
-#    - inventory_hostname in groups['master']
 #
-# - meta: end_play
+- name: Verify that pg_auto_failover/postgres was installed properly
+  become: true
+  become_user: postgres
+  shell: ( pg_ctl -V )
+  register: pg_ctl_install_verified
+  when: inventory_hostname in groups['monitor']
 
-- name: Drop PXF extension
-  become_user: gpadmin
-  shell: ( . {{ gpdb_base_dir }}/greenplum-db/greenplum_path.sh && psql -d {{ pxf_database_name }} -c "DROP EXTENSION pxf;")
-  register: pxf_extension_dropped
-  when:
-    - inventory_hostname in groups['master']
-    - "'1' in pxf_extension_install_checked.stdout"
+#
+#- debug: msg={{ pg_ctl_install_verified.stdout }}
+#  when: inventory_hostname in groups['monitor']
+#  tags:
+#    - print_debug
 
-- name: Drop database for PXF
-  become_user: gpadmin
-  shell: ( . {{ gpdb_base_dir }}/greenplum-db/greenplum_path.sh && dropdb {{ pxf_database_name }} )
-  register: pxf_database_dropped
-  when:
-    - inventory_hostname in groups['master']
 
-- name: Drop User for PXF
-  become_user: gpadmin
-  shell: ( . {{ gpdb_base_dir }}/greenplum-db/greenplum_path.sh && psql -c "DROP USER {{ pxf_username }};" )
-  register: pxf_user_dropped
+#
+- name: Getting process IDs of the pg_autoctl process
+  pids:
+    name: pg_autoctl
+  register: pids_of_pg_autoctl
+
+#
+- name: Stop pgautofailover service of systemd
+  become: true
+  systemd:
+    state: stopped
+    name: pgautofailover
+  register: pgautofailover_service_stopped
   when:
-    - inventory_hostname in groups['master']
+    - pids_of_pg_autoctl.pids|join(',') | length > 0
+
+# - name: Getting process IDs of processes matching pattern
+#  community.general.pids:
+#    pattern: myapp(2(\.7)?|3(\.6)?)?\s+myapp\.py
+#  register: myapp_pids
+
+#- name: Drop the monitor node
+#  become: yes
+#  become_user: postgres
+#  shell: ( export PGDATA=/var/lib/pgsql/data && pg_autoctl drop monitor --destroy --pgdata monitor )
+#  ignore_errors: true
+#  register: monitor_node_dropped
+#  async: 180
+#  poll: 5
+#  when:
+#    - inventory_hostname in groups['monitor']
+#    - pgautofailover_service_stopped.status
+#
+#- dgebug: msg={{ monitor_node_dropped }}
+#  when:
+#    - inventory_hostname in groups['monitor']
+#    - pgautofailover_service_stopped.status
+#   tags: debug
+
+
+##
+# Delete secondary instances in groups['secondary']
+# 1
+- name: Delete line in a .bash_profile
+  become: true
+  become_user: postgres
+  lineinfile:
+    dest: /var/lib/pgsql/.bash_profile
+    regexp: '^(.*)PGDATA=(.*)$'
+    state: absent
+  when: inventory_hostname in groups['secondary']
+
+# 2
+- name: Reload and start secondary systemd service of secondary instance
+  become: true
+  systemd:
+    daemon_reload: yes
+    name: pgautofailover
+    enabled: no
+    state: stopped
+  when: inventory_hostname in groups['secondary']
+
+# 3
+- name: Delete secondary systemd service file of secondary instance
+  become: true
+  become_user: root
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "/etc/systemd/system/pgautofailover.service"
+    - "/var/lib/pgsql/pgautofailover.service"
+  when: inventory_hostname in groups['secondary']
+
+# Delete primary instances in groups['primary']
+# 4
+- name: Delete line in a .bash_profile
+  become: true
+  become_user: postgres
+  lineinfile:
+    dest: /var/lib/pgsql/.bash_profile
+    regexp: '^(.*)PGDATA=(.*)$'
+    state: absent
+  when: inventory_hostname in groups['primary']
+
+# 6
+- name: Reload and start primary systemd service of primary instance
+  become: true
+  systemd:
+    daemon_reload: yes
+    name: pgautofailover
+    enabled: no
+    state: stopped
+  when: inventory_hostname in groups['primary']
+
+# 7
+- name: Delete primary systemd service file of secondary instance
+  become: true
+  become_user: root
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "/etc/systemd/system/pgautofailover.service"
+    - "/var/lib/pgsql/pgautofailover.service"
+  when: inventory_hostname in groups['primary']
+
+# Delete primary instance
+# 8
+#- name: Create primiary instance. It will automatically be set by the monitor as the primary node with read-write capability (PGDATA = /var/lib/pgpsql/ha)
+#  become: true
+#  become_user: postgres
+#  shell: ( cd /var/lib/pgsql ;  pg_autoctl create postgres --pgdata "{{ primary_database }}" --auth trust --ssl-self-signed --username ha-admin --dbname "{{ app_database }}" --hostname "{{ primary_hostname }}" --pgctl /bin/pg_ctl --monitor 'postgres://autoctl_node@{{ monitor_hostname }}/pg_auto_failover?sslmode=require' )
+#  register: primary_instance_created
+#  async: 180
+#  poll: 5
+#  when: inventory_hostname in groups['primary']
+
+
+# Delete monitor instances in groups['monitor']
+#
+- name: Delete line in a .bash_profile
+  become: true
+  become_user: postgres
+  lineinfile:
+    dest: /var/lib/pgsql/.bash_profile
+    regexp: '^(.*)PGDATA=(.*)$'
+    state: absent
+  when: inventory_hostname in groups['monitor']
+
+#
+- name: Reload and start systemd service of monitor instance
+  become: true
+  systemd:
+    daemon_reload: yes
+    enabled: no
+    state: stopped
+    name: pgautofailover
+  register: monitor_systemd_status
+  when: inventory_hostname in groups['monitor']
+
+#
+- name: Delete primary systemd service file of secondary instance
+  become: true
+  become_user: root
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items:
+    - "/etc/systemd/system/pgautofailover.service"
+    - "/var/lib/pgsql/pgautofailover.service"
+  when: inventory_hostname in groups['monitor']
+
+#
+- name: Uninstall VMware Postgres on all hosts as root
+  become: true
+  yum:
+    name: vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}
+    state: absent
+  async: 180
+  poll: 5
+
+#
+- name: Copy the vmwawre-postgres rpm file to all hosts in cluster
+  file:
+    path: /home/jomoon/vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm
+    state: absent
+
