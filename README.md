@@ -18,3 +18,5 @@ postgres-cluster provide ansible playbook to deploy three kind of cluster such a
      - { role: keepalived, keepalived_shared_ip: "192.168.0.80", keepalived_role: "slave" }
 ~~
 
+
+https://www.techsupportpk.com/2020/02/how-to-create-highly-available-postgresql-cluster-using-patroni-haproxy-centos-rhel-7.html

@@ -73,7 +73,7 @@
 - name: Install setuptools rust on all three nodes
   become: true
   become_user: root
-  shell: ( pip3 install setuptools-rust )
+  shell: (  export PATH=$PATH:/usr/local/bin && pip3 install setuptools-rust )
   async: 120
   poll: 5
   register: pip3_setuptools_rust_installed
@@ -83,7 +83,7 @@
 - name: Install typing pip module on all three nodes
   become: true
   become_user: postgres
-  shell: ( cd /var/lib/pgsql ; pip3 install typing )
+  shell: ( cd /var/lib/pgsql ; export PATH=$PATH:/usr/local/bin && pip3 install typing )
   async: 120
   poll: 5
   register: pip3_typing_installed
@@ -93,7 +93,7 @@
 - name: Upgrade pip3 version
   become: true
   become_user: root
-  shell: ( pip3 install --upgrade pip )
+  shell: (  export PATH=$PATH:/usr/local/bin && pip3 install --upgrade pip )
   async: 120
   poll: 5
   register: pip_upgraded
@@ -103,7 +103,7 @@
 - name: Install wheel module on all three nodes
   become: true
   become_user: postgres
-  shell: ( cd /var/lib/pgsql ; pip3 install wheel )
+  shell: ( cd /var/lib/pgsql ; export PATH=$PATH:/usr/local/bin && pip3 install wheel )
   async: 120
   poll: 5
   register: pip3_wheel_installed
@@ -115,7 +115,7 @@
 - name: Install pip modules of Patroni prerequisites on all three nodes
   become: true
   become_user: postgres
-  shell: ( pip3 install -r /var/lib/pgsql/requirements.txt )
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 install -r /var/lib/pgsql/requirements.txt )
   async: 120
   poll: 5
   register: patroni_prerequisites_verified
@@ -154,7 +154,7 @@
 - name: Install patroni modules on all three nodes for vmware-postgres 13.x version
   become: true
   become_user: root
-  shell: ( pip3 install patroni )
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 install patroni )
   async: 120
   poll: 5
   register: patroni_module_install_verified
