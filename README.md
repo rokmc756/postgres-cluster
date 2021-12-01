@@ -2,6 +2,7 @@
 postgres-cluster provide ansible playbook to deploy three kind of clusters such as gpfailover, patroni cluster, mutlti master replication ( bdr ).
 
 ## The architecture of Patroni cluster
+![alt text](https://github.com/rokmc756/postgres-cluster/blob/main/roles/patroni-postgres/images/patroni_cluster_architecture.png)
 
 
 ## Main Components of Patroni cluster for PostgreSQL
