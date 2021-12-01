@@ -14,6 +14,12 @@ It guides you how to set up a threer-node PostgreSQL cluster with Patroni on Cen
 
 ## How to install Patroni Cluster for VMware Postgres
 ~~~
+- Clone postgres-cluster ansible playbook from github
+$ git clone https://github.com/rokmc756/postgres-cluster
+
+- Copy vmware-postgres rpm package into roles/patroni-postgres/files directory.
+$ cp vmware-postgres-13.3-0.el7.x86_64.rpm roles/patroni-postgres/files/
+
 $ vi ansible-hosts
 [all:vars]
 ssh_key_filename="id_rsa"
