@@ -9,7 +9,7 @@ postgres-cluster provide ansible playbook to deploy three kind of clusters such 
 It guides you how to set up a threer-node PostgreSQL cluster with Patroni on CentOS 7.
 
 ## How to install Patroni Cluster in postgres-cluster
-~~
+~~~
 $ vi ansible-hosts
 [all:vars]
 ssh_key_filename="id_rsa"
@@ -35,10 +35,10 @@ $ vi setup-hosts.yml
     - patroni-postgres
 
 $ make install
-~~
+~~~
 
 ## How to install PostgreSQL BDR in postgres-cluster
-~~
+~~~
 - hosts: all
   roles:
     - pgsql94-bdr
@@ -51,7 +51,7 @@ $ make install
 - hosts: postgres-haproxy02
   roles:
      - { role: keepalived, keepalived_shared_ip: "192.168.0.80", keepalived_role: "slave" }
-~~
+~~~
 
 
 
