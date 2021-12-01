@@ -4,7 +4,7 @@
 #
 - name: Stop and disable firewalld
   become: true
-  service:
+  systemd:
     name: firewalld
     state: stopped
     enabled: false
