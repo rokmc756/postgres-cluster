@@ -12,6 +12,9 @@ postgres-cluster provide ansible playbook to deploy three kind of clusters such 
 
 It guides you how to set up a threer-node PostgreSQL cluster with Patroni on CentOS 7.
 
+## Supported Operrating Systems confirmed by Jack Moon so far.
+- CentOS 7
+
 ## How to install Patroni Cluster for VMware Postgres
 ~~~
 # Clone postgres-cluster ansible playbook from github
