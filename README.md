@@ -40,6 +40,15 @@ $ vi setup-hosts.yml
 
 $ make install
 ~~~
+## How to uninstall Patroni Cluster in postgres-cluster
+~~~
+$ make install
+~~~
+## How to upgrade Patroni Cluster in postgres-cluster
+~~~
+$ make upgrade
+~~~
+
 
 ## How to install PostgreSQL BDR in postgres-cluster
 ~~~
