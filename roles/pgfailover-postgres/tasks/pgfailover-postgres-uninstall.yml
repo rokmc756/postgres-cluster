@@ -1,6 +1,5 @@
 ---
 # Uninstall pg_auto_failover for RHEL or CentOS
-
 - name: Disable port from public zone
   become: true
   firewalld:
@@ -26,6 +25,13 @@
   become: true
   become_user: root
   service: name=firewalld state=restarted
+
+- name: Stop and disable firewalld.
+  become: true
+  service:
+    name: firewalld
+    state: stopped
+    enabled: False
 
 # This will create the Postgres user. You can add the Postgres user to sudoers:
 # echo "postgres  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/postgres

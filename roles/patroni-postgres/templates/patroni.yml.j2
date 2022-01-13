@@ -19,6 +19,12 @@ bootstrap:
         wal_keep_segments: 20
         max_wal_senders: 8
         max_replication_slots: 8
+        archive_mode: "off"
+        archive_timeout: 1800s
+        archive_command: mkdir -p ../wal_archive && test ! -f ../wal_archive/%f && cp %p ../wal_archive/%f
+      recovery_conf:
+        restore_command: cp ../wal_archive/%f %p
+    synchronous_mode: true
   initdb:
     - encoding: UTF8
     - data-checksums

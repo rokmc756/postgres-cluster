@@ -203,7 +203,7 @@
   when: inventory_hostname in groups["postgres-ha"]
 
 #
-- name: Reload and start systemd service of etcd
+- name: Reload and start etcd through systemd
   become: true
   systemd:
     daemon_reload: yes
@@ -232,7 +232,7 @@
   file: path=/var/lib/pgsql/patroni_data state=directory owner=postgres group=postgres
 
 #
-- name: Create the postgresql10.yml configuration file for all nodes
+- name: Create the patroni.yml configuration file for all nodes
   become: true
   become_user: postgres
   template: src=patroni.yml.j2 dest=/var/lib/pgsql/patroni.yml owner=postgres group=postgres mode=644 force=yes
@@ -296,7 +296,7 @@
   when: inventory_hostname in groups["postgres-ha"]
 
 - debug: msg={{ patroni_removed }}
-#
+
 - name: Reinitialize patroni clsuter on all node
   become: true
   become_user: postgres

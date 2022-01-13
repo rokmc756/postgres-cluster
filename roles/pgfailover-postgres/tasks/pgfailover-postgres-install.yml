@@ -1,6 +1,14 @@
 ---
 # Install pg_auto_failover for RHEL or CentOS
 #
+
+- name: Start and enable firewalld.
+  become: true
+  service:
+    name: firewalld
+    state: started
+    enabled: True
+
 - name: Open Firewall
   become: true
   firewalld:
@@ -30,12 +38,20 @@
 
 #
 - name: Copy the vmwawre-postgres rpm file to all hosts in cluster
-  copy: src=vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm dest=/home/jomoon/vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm mode=0644 owner=jomoon group=jomoon
+  copy: src={{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm dest=/home/jomoon/{{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm mode=0644 owner=jomoon group=jomoon
+
+- name: Install dependency rpm package for pgautofailover
+  become: true
+  yum:
+    name: python2-psutil
+    state: present
+  async: 180
+  poll: 5
 
 - name: Install VMware Postgres on all hosts as root
   become: true
   yum:
-    name: /home/jomoon/vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm
+    name: /home/jomoon/{{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm
     state: present
   async: 180
   poll: 5

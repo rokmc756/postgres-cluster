@@ -42,6 +42,25 @@ postgres-ha01 ansible_ssh_host=192.168.0.81
 postgres-ha02 ansible_ssh_host=192.168.0.82
 postgres-ha03 ansible_ssh_host=192.168.0.83
 
+# Add the following lines if you wnat to configure sync standby in patroni cluster
+$ vi roles/patroni-postgres/templates/patroni.yml.j2
+~~ snip
+      parameters:
+        hot_standby: 'on'
+        wal_keep_segments: 20
+        max_wal_senders: 8
+        max_replication_slots: 8
+        archive_mode: "off"             #  --> Add this linke
+        archive_timeout: 1800s          #  --> Add this line
+        archive_command: mkdir -p ../wal_archive && test ! -f ../wal_archive/%f && cp %p ../wal_archive/%f    #  --> Add this line
+      recovery_conf:                    #  --> Add this line
+        restore_command: cp ../wal_archive/%f %p        # --> Add this like
+    synchronous_mode: true
+  initdb:
+    - encoding: UTF8
+    - data-checksums
+~~ snip
+
 $ vi setup-hosts.yml
 ---
 - hosts: all

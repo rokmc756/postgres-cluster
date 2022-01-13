@@ -1,5 +1,1 @@
----
-
-- hosts: all
-  roles:
-    - patroni-postgres
+setup-host.yml.pgautofailover
