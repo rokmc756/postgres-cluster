@@ -71,7 +71,7 @@ $ make install
 ~~~
 ## How to uninstall Patroni Cluster for VMware Postgres
 ~~~
-$ make install
+$ make uninstall
 ~~~
 ## How to upgrade Patroni Cluster for VMware Postgres
 ~~~
