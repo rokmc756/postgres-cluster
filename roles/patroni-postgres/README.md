@@ -65,7 +65,9 @@ $ vi setup-hosts.yml
 - hosts: all
   roles:
     - patroni-postgres
-
+~~~
+## How to uninstall Patroni Cluster for VMware Postgres
+~~~
 $ make install
 ~~~
 ## How to uninstall Patroni Cluster for VMware Postgres
