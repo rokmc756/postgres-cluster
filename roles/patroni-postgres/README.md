@@ -41,6 +41,7 @@ co7-node02 ansible_ssh_host=192.168.0.82
 co7-node03 ansible_ssh_host=192.168.0.83
 ~~~
 ## Add the following lines if you wnat to configure sync standby in patroni cluster
+~~~
 $ vi roles/patroni-postgres/templates/patroni.yml.j2
 ~~ snip
       parameters:
