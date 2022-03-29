@@ -1,16 +1,48 @@
-## The architecture of pg_auto_failover cluster
-![alt text](https://github.com/rokmc756/postgres-cluster/blob/main/roles/pgfailover-postgres/images/arch-single-standby.svg)
+# What is pg_auto_failover?
+Facilitates the creation of a High Availability (HA) configuration
+Monitors replication between Postgres instances
+Manages automatic failover for a group of Postgres nodes.
+Optimizes for simplicity and correctness.
+Guarantees availability for business continuity of the Postgres service to users and applications with asynchronous replication in the event of a standby node failure while automating maintenance operations as a trade-off involved.
+Configuration changes in a live system without downtime.
 
-![alt text](https://github.com/rokmc756/postgres-cluster/blob/main/roles/pgfailover-postgres/images/arch-multi-standby.svg)
-
-![alt text](https://github.com/rokmc756/postgres-cluster/blob/main/roles/pgfailover-postgres/images/arch-three-standby-one-async.svg)
 
 ## Main Components of pg_auto_failover cluster for VMware Postgres
-- Patroni provides a template for creating, managing, maintaining and monitoring highly available clusters using Postgres streaming replication. Patroni handles the Postgres database initialization as well as planned switchovers or unplanned failovers.
-- ETCD stores the state of the PostgreSQL cluster.  When any changes in the state of any PostgreSQL node are found, Patroni updates the state change in the ETCD key-value store. ETCD uses this information to elects the master node and keeps the cluster UP and running.
-- HAProxy keeps track of changes in the Master/Slave nodes and connects to the appropriate master node when the clients request a connection.
+# Requires three key components as a minimum:
+a pg_auto_failover monitor node as a witness and an orchestrator.
+a Postgres primary node.
+a Postgres secondary node, using by default a synchronous hot standby setup.
+# Consists of the following parts:
+a PostgreSQL extension named pgautofailover
+a PostgreSQL service to operate the pg_auto_failover monitor
+a pg_auto_failover keeper to operate your PostgreSQL instances
 
-It guides you how to set up a threer-node cluster with pg_auto_failover on CentOS 7.
+
+
+## The architecture of pg_auto_failover cluster
+# Single Standby node
+![alt text](https://github.com/rokmc756/postgres-cluster/blob/main/roles/pgfailover-postgres/images/arch-single-standby.svg)
+Monitor node implements a state machine and relies on in-core PostgreSQL facilities to deliver HA.
+For example. when the secondary node is detected to be unavailable or when its lag is too much, then the Monitor removes it from the synchronous_standby_names setting on the primary node.
+Until the secondary is back to being monitored healthy, failover and switchover operations are not allowed, preventing data loss.
+
+# Multi Standby nodes
+![alt text](https://github.com/rokmc756/postgres-cluster/blob/main/roles/pgfailover-postgres/images/arch-multi-standby.svg)
+Even after losing any Postgres node, this architecture maintains two copies of the data on two different nodes.
+When using more than one standby, different architectures can be achieved with pg_auto_failover, depending on the objectives and trade-offs needed for your setup.
+
+# Three Standby nodes
+![alt text](https://github.com/rokmc756/postgres-cluster/blob/main/roles/pgfailover-postgres/images/arch-three-standby-one-async.svg)
+## Two standby nodes participating in the replication quorum, allowing for number_sync_standbys = 1.
+## A minimum of two copies of the data set: one on the primary, another one on one on either node B or node D.
+## Guarantee two copies of the data set whenever losing one of those nodes.
+## Standby server C will not participate in the replication quorum.
+## Node C will not be found in the synchronous_standby_names list of nodes.
+## Node C will never be a candidate for failover, with candidate-priority = 0.
+## Fit a situation where nodes A, B, and D are deployed in the same data center or availability zone, and node C in another.
+## Support the main production traffic and implement high availability of both the Postgres service and the data set.
+## Node C might be set up for Business Continuity in case the first data center is lost, or maybe for reporting the need for deployment on another application domain.
+
 
 ## Supported Operrating Systems confirmed by Jack Moon so far.
 - CentOS 7
