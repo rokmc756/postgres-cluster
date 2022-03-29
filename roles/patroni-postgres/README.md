@@ -12,14 +12,16 @@ It guides you how to set up a threer-node PostgreSQL cluster with Patroni on Cen
 - CentOS 7
 
 ## How to install Patroni Cluster for VMware Postgres
+### Clone postgres-cluster ansible playbook from github
 ~~~
-# Clone postgres-cluster ansible playbook from github
 $ git clone https://github.com/rokmc756/postgres-cluster
-
-# Copy vmware-postgres rpm package into roles/patroni-postgres/files directory.
+~~~
+### Copy vmware-postgres rpm package into roles/patroni-postgres/files directory.
+~~~
 $ cp vmware-postgres-13.3-0.el7.x86_64.rpm roles/patroni-postgres/files/
-
-# Modify your hostnames and ip addresses in ansible-hosts file.
+~~~
+### Modify your hostnames and ip addresses in ansible-hosts file.
+~~~
 $ vi ansible-hosts
 [all:vars]
 ssh_key_filename="id_rsa"
@@ -37,8 +39,8 @@ co7-node01 ansible_ssh_host=192.168.0.81
 [slave]
 co7-node02 ansible_ssh_host=192.168.0.82
 co7-node03 ansible_ssh_host=192.168.0.83
-
-# Add the following lines if you wnat to configure sync standby in patroni cluster
+~~~
+## Add the following lines if you wnat to configure sync standby in patroni cluster
 $ vi roles/patroni-postgres/templates/patroni.yml.j2
 ~~ snip
       parameters:
