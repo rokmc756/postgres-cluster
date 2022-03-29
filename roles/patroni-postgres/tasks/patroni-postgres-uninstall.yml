@@ -42,8 +42,13 @@
 - name: Delete data directory for patroni cluster
   become: true
   file:
-    path: /var/lib/pgsql/patroni_data
+    path: "/var/lib/pgsql/{{ item }}"
     state: absent
+  with_items:
+    - "backups"
+    - "data"
+    - "patroni_data"
+#    path: /var/lib/pgsql/*
 
 #
 - name: Change the permissions on the /tmp directory
@@ -77,13 +82,14 @@
 #- debug: msg={{ pg_autoctl_uninstall_verified }}
 
 #
-- name: Install wheel pip module on all three nodes
+- name: UnInstall wheel pip module on all three nodes
   become: true
   become_user: postgres
   shell: ( export PATH=$PATH:/usr/local/bin && pip3 uninstall wheel -y )
   async: 120
   poll: 5
   register: pip3_wheel_installed
+  ignore_errors: yes
   when: inventory_hostname in groups['postgres-ha']
 
 #- debug: msg={{ pip3_wheel_installed }}
@@ -108,6 +114,7 @@
   async: 120
   poll: 5
   register: pip3_typing_uninstalled
+  ignore_errors: yes
   when: inventory_hostname in groups['postgres-ha']
 
 #- debug: msg={{ pip3_typing_uninstalled }}
@@ -120,6 +127,7 @@
   async: 120
   poll: 5
   register: pip3_setuptools_rust_uninstalled
+  ignore_errors: yes
   when: inventory_hostname in groups['postgres-ha']
 
 #- debug: msg={{ pip3_setuptools_rust_uninstalled }}
@@ -131,6 +139,7 @@
   async: 120
   poll: 5
   register: pip3_patroni_module_uninstalled
+  ignore_errors: yes
   when:
     - major_version == 13
     - inventory_hostname in groups['postgres-ha']
@@ -142,6 +151,7 @@
   async: 120
   poll: 5
   register: pip3_wheel_module_uninstalled
+  ignore_errors: yes
   when:
     - major_version == 13
     - inventory_hostname in groups['postgres-ha']
@@ -154,6 +164,7 @@
   async: 120
   poll: 5
   register: pip3_psycopg2_binary_module_uninstalled
+  ignore_errors: yes
   when:
     - major_version == 13
     - inventory_hostname in groups['postgres-ha']
@@ -166,6 +177,7 @@
     path: /var/lib/pgsql/requirements.txt
     state: absent
   register: patroni_prereq_uninstalled
+  ignore_errors: yes
   when: inventory_hostname in groups['postgres-ha']
 
 #

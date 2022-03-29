@@ -1,10 +1,10 @@
 ---
 
 # vmware-postgres-12.7-0.el7.x86_64.rpm
-package_name: vmware-postgres10
-major_version: 10
-minor_version: 19
-patch_version: 1
+package_name: vmware-postgres
+major_version: 13
+minor_version: 3
+patch_version: 0
 rhel_version: el7
 database_name: vmware_postgres_testdb
 username: postgres
@@ -16,17 +16,9 @@ app_database: appdb
 monitor_database: monitor
 primary_database: ha
 secondary_database: ha
-# secondary2_database: ha
 
 # Hostnames
-# monitor_hostname: "postgres-monitor"
-monitor_hostname: "postgres-haproxy01"
-primary_hostname: "postgres-ha01"
-secondary_hostname: "postgres-ha02"
-secondary2_hostname: "postgres-ha03"
-
-#
-# install_secondary2: true
-# Package name
-# files/vmware-postgres-12.7-0.el7.x86_64.rpm
-
+monitor_hostname: "co7-master"
+primary_hostname: "co7-node01"
+secondary_hostname: "co7-node02"
+secondary2_hostname: "co7-node03"

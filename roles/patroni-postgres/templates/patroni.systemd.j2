@@ -1,11 +1,11 @@
 [Unit]
-Description=patroni service
+Description=Runners to orchestrate a patroni cluster
 After=etcd.service syslog.target network.target
 
 [Service]
+Type=simple
 User=postgres
 Group=postgres
-Type=simple
 #ExecStartPre=-/usr/bin/sudo /sbin/modprobe softdog
 #ExecStartPre=-/usr/bin/sudo /bin/chown postgres /dev/watchdog
 ExecStart={{ patroni_bin_path }} /var/lib/pgsql/patroni.yml
@@ -15,3 +15,4 @@ Restart=no
 TimeoutSec=30
 
 [Install]
+WantedBy=multi-user.target

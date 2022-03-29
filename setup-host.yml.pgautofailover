@@ -1,5 +1,5 @@
 ---
 - hosts: all
   roles:
-    - patroni-postgres
-#    - pgfailover-postgres
+    - pgfailover-postgres
+#    - patroni-postgres

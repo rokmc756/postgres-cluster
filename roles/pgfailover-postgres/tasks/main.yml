@@ -8,13 +8,13 @@
   when: ansible_os_family != 'RedHat'
 
 - name: Installation of vmware postgres for Red Hat / CentOS
-  include: pgfailover-postgres-install.yml
+  include: install.yml
   tags: install
 
 - name: Uninstallation of vmware postgres for Red Hat / CentOS
-  include: pgfailover-postgres-uninstall.yml
+  include: uninstall.yml
   tags: uninstall
 
 - name: Upgrade of vmware postgres for Red Hat / CentOS
-  include: pgfailover-postgres-upgrade.yml
+  include: upgrade.yml
   tags: upgrade

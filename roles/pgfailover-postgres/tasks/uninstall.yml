@@ -1,0 +1,249 @@
+---
+# Uninstall pg_auto_failover for RHEL or CentOS
+
+- name: Disable port from public zone
+  become: true
+  firewalld:
+    port: '{{item}}/tcp'
+    permanent: true
+    state: disabled
+    zone: public
+    immediate: yes
+  ignore_errors: yes
+  with_items:
+    - '5432'
+
+- name: Disable IP Addresses in whitelist
+  become: true
+  firewalld:
+    zone: public
+    rich_rule: "rule family=ipv4 source address={{ hostvars[item]['ansible_eth0']['ipv4']['address'] }} accept"
+    permanent: true
+    state: disabled
+  with_items:
+    - "{{ groups['all'] }}"
+
+- name: Bounce firewalld
+  become: true
+  become_user: root
+  service: name=firewalld state=restarted
+
+- name: Stop and disable firewalld.
+  become: true
+  service:
+    name: firewalld
+    state: stopped
+    enabled: False
+
+# This will create the Postgres user. You can add the Postgres user to sudoers:
+# echo "postgres  ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/postgres
+- name: Verify that pg_auto_failover/postgres was installed properly
+  become: true
+  become_user: postgres
+  shell: ( pg_autoctl version )
+  ignore_errors: yes
+  register: pg_autoctl_install_verified
+  when: inventory_hostname in groups['monitor']
+
+#
+- name: Verify that pg_auto_failover/postgres was installed properly
+  become: true
+  become_user: postgres
+  shell: ( pg_ctl -V )
+  register: pg_ctl_install_verified
+  when: inventory_hostname in groups['monitor']
+
+#
+#- debug: msg={{ pg_ctl_install_verified.stdout }}
+#  when: inventory_hostname in groups['monitor']
+#  tags:
+#    - print_debug
+
+
+#
+- name: Getting process IDs of the pg_autoctl process
+  pids:
+    name: pg_autoctl
+  register: pids_of_pg_autoctl
+
+#
+- name: Stop pgautofailover service of systemd
+  become: true
+  systemd:
+    state: stopped
+    name: pgautofailover
+  register: pgautofailover_service_stopped
+  when:
+    - pids_of_pg_autoctl.pids|join(',') | length > 0
+
+# - name: Getting process IDs of processes matching pattern
+#  community.general.pids:
+#    pattern: myapp(2(\.7)?|3(\.6)?)?\s+myapp\.py
+#  register: myapp_pids
+
+#- name: Drop the monitor node
+#  become: yes
+#  become_user: postgres
+#  shell: ( export PGDATA=/var/lib/pgsql/data && pg_autoctl drop monitor --destroy --pgdata monitor )
+#  ignore_errors: true
+#  register: monitor_node_dropped
+#  async: 180
+#  poll: 5
+#  when:
+#    - inventory_hostname in groups['monitor']
+#    - pgautofailover_service_stopped.status
+#
+#- dgebug: msg={{ monitor_node_dropped }}
+#  when:
+#    - inventory_hostname in groups['monitor']
+#    - pgautofailover_service_stopped.status
+#   tags: debug
+
+
+##
+# Delete secondary instances in groups['secondary']
+# 1
+- name: Delete line in a .bash_profile
+  become: true
+  become_user: postgres
+  lineinfile:
+    dest: /var/lib/pgsql/.bash_profile
+    regexp: '^(.*)PGDATA=(.*)$'
+    state: absent
+  when: inventory_hostname in groups['secondary']
+
+# 2
+- name: Reload and start secondary systemd service of secondary instance
+  become: true
+  systemd:
+    daemon_reload: yes
+    name: pgautofailover
+    enabled: no
+    state: stopped
+  ignore_errors: yes
+  when: inventory_hostname in groups['secondary']
+
+# 3
+- name: Delete secondary systemd service file of secondary instance
+  become: true
+  become_user: root
+  file:
+    path: "{{ item }}"
+    state: absent
+  ignore_errors: yes
+  with_items:
+    - "/etc/systemd/system/pgautofailover.service"
+    - "/var/lib/pgsql/pgautofailover.service"
+    - "/var/lib/pgsql/.bash_profile"
+    - "/var/lib/pgsql/.config"
+    - "/var/lib/pgsql/.ansible"
+    - "/var/lib/pgsql"
+  when: inventory_hostname in groups['secondary']
+
+# Delete primary instances in groups['primary']
+# 4
+- name: Delete line in a .bash_profile
+  become: true
+  become_user: postgres
+  lineinfile:
+    dest: /var/lib/pgsql/.bash_profile
+    regexp: '^(.*)PGDATA=(.*)$'
+    state: absent
+  ignore_errors: yes
+  when: inventory_hostname in groups['primary']
+
+# 6
+- name: Reload and start primary systemd service of primary instance
+  become: true
+  systemd:
+    daemon_reload: yes
+    name: pgautofailover
+    enabled: no
+    state: stopped
+  ignore_errors: yes
+  when: inventory_hostname in groups['primary']
+
+# 7
+- name: Delete primary systemd service file of secondary instance
+  become: true
+  become_user: root
+  file:
+    path: "{{ item }}"
+    state: absent
+  ignore_errors: yes
+  with_items:
+    - "/etc/systemd/system/pgautofailover.service"
+    - "/var/lib/pgsql/pgautofailover.service"
+    - "/var/lib/pgsql/.bash_profile"
+    - "/var/lib/pgsql/.config"
+    - "/var/lib/pgsql/.ansible"
+    - "/var/lib/pgsql"
+  when: inventory_hostname in groups['primary']
+
+# Delete primary instance
+# 8
+#- name: Create primiary instance. It will automatically be set by the monitor as the primary node with read-write capability (PGDATA = /var/lib/pgpsql/ha)
+#  become: true
+#  become_user: postgres
+#  shell: ( cd /var/lib/pgsql ;  pg_autoctl create postgres --pgdata "{{ primary_database }}" --auth trust --ssl-self-signed --username ha-admin --dbname "{{ app_database }}" --hostname "{{ primary_hostname }}" --pgctl /bin/pg_ctl --monitor 'postgres://autoctl_node@{{ monitor_hostname }}/pg_auto_failover?sslmode=require' )
+#  register: primary_instance_created
+#  async: 180
+#  poll: 5
+#  when: inventory_hostname in groups['primary']
+
+
+# Delete monitor instances in groups['monitor']
+#
+- name: Delete line in a .bash_profile
+  become: true
+  become_user: postgres
+  lineinfile:
+    dest: /var/lib/pgsql/.bash_profile
+    regexp: '^(.*)PGDATA=(.*)$'
+    state: absent
+  ignore_errors: yes
+  when: inventory_hostname in groups['monitor']
+
+#
+- name: Reload and start systemd service of monitor instance
+  become: true
+  systemd:
+    daemon_reload: yes
+    enabled: no
+    state: stopped
+    name: pgautofailover
+  ignore_errors: yes
+  register: monitor_systemd_status
+  when: inventory_hostname in groups['monitor']
+
+#
+- name: Delete primary systemd service file of secondary instance
+  become: true
+  become_user: root
+  file:
+    path: "{{ item }}"
+    state: absent
+  ignore_errors: yes
+  with_items:
+    - "/etc/systemd/system/pgautofailover.service"
+    - "/var/lib/pgsql/pgautofailover.service"
+    - "/var/lib/pgsql/.bash_profile"
+    - "/var/lib/pgsql/.config"
+    - "/var/lib/pgsql/.ansible"
+    - "/var/lib/pgsql"
+  when: inventory_hostname in groups['monitor']
+
+#
+- name: Uninstall VMware Postgres on all hosts as root
+  become: true
+  yum:
+    name: vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}
+    state: absent
+  async: 180
+  poll: 5
+
+#
+- name: Copy the vmwawre-postgres rpm file to all hosts in cluster
+  file:
+    path: /home/jomoon/vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm
+    state: absent

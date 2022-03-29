@@ -27,6 +27,27 @@
   tags:
     - print_debug
 
+- name: Install the 'Development tools' package group for VMware Postgres Dependencies
+  become: true
+  yum:
+    name: "@Development tools"
+    state: present
+  async: 360
+  poll: 5
+
+- name: Install the perl package for VMware Postgres Dependencies
+  become: true
+  yum:
+    name: "{{ item }}"
+    state: present
+  async: 360
+  poll: 5
+  with_items:
+    - perl
+    - readline-devel
+    - libicu-devel
+    - perl-libs
+
 #
 - name: Copy the vmwawre-postgres rpm file to all hosts in cluster
   copy: src=vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm dest=/home/jomoon/vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm mode=0644 owner=jomoon group=jomoon
@@ -57,9 +78,9 @@
     - python-psycopg2
     - python3-pip
     - python34-setuptools
-    - python27-python-setuptools
     - yamllint
     - daemonize
+#    - python27-python-setuptools
 
 #
 - name: Install the dependencies of etcd  on all three nodes
@@ -80,9 +101,10 @@
   when: inventory_hostname in groups['postgres-ha']
 
 #
+#  become_user: postgres
 - name: Install typing pip module on all three nodes
   become: true
-  become_user: postgres
+  become_user: root
   shell: ( cd /var/lib/pgsql ; export PATH=$PATH:/usr/local/bin && pip3 install typing )
   async: 120
   poll: 5
@@ -248,7 +270,7 @@
   template: src=patroni.systemd.j2 dest=/etc/systemd/system/patroni.service owner=root group=root mode=644 force=yes
   when: inventory_hostname in groups["postgres-ha"]
 
-# Start services for zookeeper and kafka
+# Enable and Start services for patroni
 - name: Reload and start systemd service of patroni
   become: true
   systemd:

@@ -2,7 +2,10 @@
 
 # files/vmware-postgres-10.17-0.el7.x86_64.rpm
 # files/vmware-postgres-12.7-0.el7.x86_64.rpm
-# files/ vmware-postgres-11.12-0.el7.x86_64.rpm
+# files/vmware-postgres-11.12-0.el7.x86_64.rpm
+# files/vmware-postgres13-13.5-1.el7.x86_64.rpm
+# files/vmware-postgres14-14.1-1.el7.x86_64.rpm
+
 major_version: 13
 minor_version: 3
 patch_version: 0
