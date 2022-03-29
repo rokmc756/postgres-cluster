@@ -1,10 +1,10 @@
 # What is pg_auto_failover?
-Facilitates the creation of a High Availability (HA) configuration
-Monitors replication between Postgres instances
-Manages automatic failover for a group of Postgres nodes.
-Optimizes for simplicity and correctness.
-Guarantees availability for business continuity of the Postgres service to users and applications with asynchronous replication in the event of a standby node failure while automating maintenance operations as a trade-off involved.
-Configuration changes in a live system without downtime.
+## Facilitates the creation of a High Availability (HA) configuration
+## Monitors replication between Postgres instances
+## Manages automatic failover for a group of Postgres nodes.
+## Optimizes for simplicity and correctness.
+## Guarantees availability for business continuity of the Postgres service to users and applications with asynchronous replication in the event of a standby node failure while automating maintenance operations as a trade-off involved.
+## Configuration changes in a live system without downtime.
 
 
 ## Main Components of pg_auto_failover cluster for VMware Postgres
