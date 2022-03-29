@@ -49,9 +49,6 @@ $ git clone https://github.com/rokmc756/postgres-cluster
 ## Go to the postgres-cluster directory
 $ cd postgres-cluster
 
-## Copy vmware-postgres rpm package into roles/pgfailover-postgres/files directory.
-$ cp vmware-postgres-13.3-0.el7.x86_64.rpm roles/pgfailover-postgres/files/
-
 ## Modify your hostnames and ip addresses in ansible-hosts file.
 ~~~
 $ vi ansible-hosts
@@ -92,7 +89,7 @@ secondary_database: ha
 
 ## Download and locate vmware-postgres rpm package
 ~~~
-$ mv  vmware-postgres-13.3-0.el7.x86_64.rpm roles/pgfailover-postgres/files/
+$ mv vmware-postgres-13.3-0.el7.x86_64.rpm roles/pgfailover-postgres/files/
 ~~~
 
 ## Configure role of pg_auto_failover in ansible-playbook
