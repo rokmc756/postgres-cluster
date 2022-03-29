@@ -1,7 +1,6 @@
 ## The architecture of Patroni cluster
 ![alt text](https://github.com/rokmc756/postgres-cluster/blob/main/roles/patroni-postgres/images/patroni_cluster_architecture.png)
 
-
 ## Main Components of Patroni cluster for VMware Postgres
 - Patroni provides a template for creating, managing, maintaining and monitoring highly available clusters using Postgres streaming replication. Patroni handles the Postgres database initialization as well as planned switchovers or unplanned failovers.
 - ETCD stores the state of the PostgreSQL cluster.  When any changes in the state of any PostgreSQL node are found, Patroni updates the state change in the ETCD key-value store. ETCD uses this information to elects the master node and keeps the cluster UP and running.
@@ -28,16 +27,16 @@ remote_machine_username="jomoon"
 remote_machine_password="changeme"
 
 [postgres-ha]
-postgres-ha01 ansible_ssh_host=192.168.0.81
-postgres-ha02 ansible_ssh_host=192.168.0.82
-postgres-ha03 ansible_ssh_host=192.168.0.83
+co7-node01 ansible_ssh_host=192.168.0.81
+co7-node02 ansible_ssh_host=192.168.0.82
+co7-node03 ansible_ssh_host=192.168.0.83
 
 [master]
-postgres-ha01 ansible_ssh_host=192.168.0.81
+co7-node01 ansible_ssh_host=192.168.0.81
 
 [slave]
-postgres-ha02 ansible_ssh_host=192.168.0.82
-postgres-ha03 ansible_ssh_host=192.168.0.83
+co7-node02 ansible_ssh_host=192.168.0.82
+co7-node03 ansible_ssh_host=192.168.0.83
 
 # Add the following lines if you wnat to configure sync standby in patroni cluster
 $ vi roles/patroni-postgres/templates/patroni.yml.j2
@@ -74,24 +73,3 @@ $ make uninstall
 ~~~
 $ make upgrade
 ~~~
-
-
-## How to install PostgreSQL BDR
-~~~
-- hosts: all
-  roles:
-    - pgsql94-bdr
-    - haproxy
-
-- hosts: postgres-haproxy01
-  roles:
-     - { role: keepalived, keepalived_shared_ip: "192.168.0.79", keepalived_role: "master" }
-
-- hosts: postgres-haproxy02
-  roles:
-     - { role: keepalived, keepalived_shared_ip: "192.168.0.80", keepalived_role: "slave" }
-~~~
-
-
-
-https://www.techsupportpk.com/2020/02/how-to-create-highly-available-postgresql-cluster-using-patroni-haproxy-centos-rhel-7.html
