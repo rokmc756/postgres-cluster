@@ -7,44 +7,42 @@
 - Configuration changes in a live system without downtime.
 
 
-## Main Components of pg_auto_failover cluster for VMware Postgres
-# Requires three key components as a minimum:
-a pg_auto_failover monitor node as a witness and an orchestrator.
-a Postgres primary node.
-a Postgres secondary node, using by default a synchronous hot standby setup.
-# Consists of the following parts:
-a PostgreSQL extension named pgautofailover
-a PostgreSQL service to operate the pg_auto_failover monitor
-a pg_auto_failover keeper to operate your PostgreSQL instances
+# Main Components of pg_auto_failover cluster for VMware Postgres
+## Requires three key components as a minimum:
+- a pg_auto_failover monitor node as a witness and an orchestrator.
+- a Postgres primary node.
+- a Postgres secondary node, using by default a synchronous hot standby setup.
+## Consists of the following parts:
+- a PostgreSQL extension named pgautofailover
+- a PostgreSQL service to operate the pg_auto_failover monitor
+- a pg_auto_failover keeper to operate your PostgreSQL instances
 
 
-
-## The architecture of pg_auto_failover cluster
-# Single Standby node
+# The architecture of pg_auto_failover cluster
+## Single Standby node
 ![alt text](https://github.com/rokmc756/postgres-cluster/blob/main/roles/pgfailover-postgres/images/arch-single-standby.svg)
-Monitor node implements a state machine and relies on in-core PostgreSQL facilities to deliver HA.
-For example. when the secondary node is detected to be unavailable or when its lag is too much, then the Monitor removes it from the synchronous_standby_names setting on the primary node.
-Until the secondary is back to being monitored healthy, failover and switchover operations are not allowed, preventing data loss.
+- Monitor node implements a state machine and relies on in-core PostgreSQL facilities to deliver HA.
+- For example. when the secondary node is detected to be unavailable or when its lag is too much, then the Monitor removes it from the synchronous_standby_names setting on the primary node.
+- Until the secondary is back to being monitored healthy, failover and switchover operations are not allowed, preventing data loss.
 
-# Multi Standby nodes
+## Multi Standby nodes
 ![alt text](https://github.com/rokmc756/postgres-cluster/blob/main/roles/pgfailover-postgres/images/arch-multi-standby.svg)
-Even after losing any Postgres node, this architecture maintains two copies of the data on two different nodes.
-When using more than one standby, different architectures can be achieved with pg_auto_failover, depending on the objectives and trade-offs needed for your setup.
+- Even after losing any Postgres node, this architecture maintains two copies of the data on two different nodes.
+- When using more than one standby, different architectures can be achieved with pg_auto_failover, depending on the objectives and trade-offs needed for your setup.
 
-# Three Standby nodes
+## Three Standby nodes
 ![alt text](https://github.com/rokmc756/postgres-cluster/blob/main/roles/pgfailover-postgres/images/arch-three-standby-one-async.svg)
-## Two standby nodes participating in the replication quorum, allowing for number_sync_standbys = 1.
-## A minimum of two copies of the data set: one on the primary, another one on one on either node B or node D.
-## Guarantee two copies of the data set whenever losing one of those nodes.
-## Standby server C will not participate in the replication quorum.
-## Node C will not be found in the synchronous_standby_names list of nodes.
-## Node C will never be a candidate for failover, with candidate-priority = 0.
-## Fit a situation where nodes A, B, and D are deployed in the same data center or availability zone, and node C in another.
-## Support the main production traffic and implement high availability of both the Postgres service and the data set.
-## Node C might be set up for Business Continuity in case the first data center is lost, or maybe for reporting the need for deployment on another application domain.
+- Two standby nodes participating in the replication quorum, allowing for number_sync_standbys = 1.
+- A minimum of two copies of the data set: one on the primary, another one on one on either node B or node D.
+- Guarantee two copies of the data set whenever losing one of those nodes.
+- Standby server C will not participate in the replication quorum.
+- Node C will not be found in the synchronous_standby_names list of nodes.
+- Node C will never be a candidate for failover, with candidate-priority = 0.
+- Fit a situation where nodes A, B, and D are deployed in the same data center or availability zone, and node C in another.
+- Support the main production traffic and implement high availability of both the Postgres service and the data set.
+- Node C might be set up for Business Continuity in case the first data center is lost, or maybe for reporting the need for deployment on another application domain.
 
-
-## Supported Operrating Systems confirmed by Jack Moon so far.
+# Supported Operrating Systems confirmed by Jack Moon so far.
 - CentOS 7
 
 ## Download ansible-playbook for postgres-cluster
@@ -76,7 +74,7 @@ co7-node02 ansible_ssh_host=192.168.0.84
 co7-node03 ansible_ssh_host=192.168.0.85
 ~~~
 
-## Configures variables of vmware-postgres packages and user / databases
+# Configures variables of vmware-postgres packages and user / databases
 ~~~
 $ vi  roles/pgfailover-postgres/vars/main.yml
 package_name: vmware-postgres
@@ -94,17 +92,22 @@ primary_database: ha
 secondary_database: ha
 ~~~
 
-## Download and locate vmware-postgres rpm package you want to install
+# Download and locate vmware-postgres rpm package you want to install
+~~~
 $ mv  vmware-postgres-13.3-0.el7.x86_64.rpm roles/pgfailover-postgres/files/
+~~~
 
-## Configure role of pg_auto_failover in postgres-cluster ansible-playbook
+# Configure role of pg_auto_failover in postgres-cluster ansible-playbook
+~~~
 $ vi setup-host.yml
 ---
 - hosts: all
   roles:
     - pgfailover-postgres
+~~~
 
-## Install or uninstall pg_auto_failover
+# Install or uninstall pg_auto_failover
+~~~
 $ make install
 $ make uninstall
-
+~~~
