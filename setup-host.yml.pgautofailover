@@ -1,5 +1,6 @@
 ---
 - hosts: all
   roles:
-    - pgfailover-postgres
+    - pgsql94-bdr
 #    - patroni-postgres
+#    - pgfailover-postgres

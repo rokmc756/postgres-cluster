@@ -1,5 +1,4 @@
 ---
-#
 # Install Patroni Cluster for RHEL or CentOS 7.x
 #
 - name: Stop and disable firewalld
@@ -204,7 +203,6 @@
 
 - debug: msg={{ etcd_config_created }}
 
-#
 #- name: Start up etcd on all nodes
 #  become: true
 #  become_user: postgres
@@ -216,7 +214,6 @@
 #
 #- debug: msg={{ etcd_started }}
 
-########################################################################################
 #
 - name: Copy systemd configuration of etcd into /etc/systemd/system
   become: true
@@ -233,10 +230,6 @@
     enabled: yes
     state: started
   when: inventory_hostname in groups["postgres-ha"]
-#  when: inventory_hostname == "postgres-ha01"
-
-
-#########################################################################################
 
 #
 - name: Lists the members and identifies the current Leader.

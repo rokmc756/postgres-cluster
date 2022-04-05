@@ -1,9 +1,0 @@
-name: postgresql2
-
-restapi:
-  listen: {{ hostvars['postgres-ha03']['ansible_eth0']['ipv4']['address'] }}:8008
-  connect_address: {{ hostvars['postgres-ha03']['ansible_eth0']['ipv4']['address'] }}:8008
-
-postgresql:
-  listen: {{ hostvars['postgres-ha03']['ansible_eth0']['ipv4']['address'] }}:5432
-  connect_address: {{ hostvars['postgres-ha03']['ansible_eth0']['ipv4']['address'] }}:5432

@@ -1,11 +1,6 @@
 ---
 
-# files/vmware-postgres-10.17-0.el7.x86_64.rpm
 # files/vmware-postgres-12.7-0.el7.x86_64.rpm
-# files/vmware-postgres-11.12-0.el7.x86_64.rpm
-# files/vmware-postgres13-13.5-1.el7.x86_64.rpm
-# files/vmware-postgres14-14.1-1.el7.x86_64.rpm
-
 major_version: 13
 minor_version: 3
 patch_version: 0
@@ -14,26 +9,6 @@ database_name: vmware_postgres_testdb
 username: postgres
 patroni_bin_path: "/usr/local/bin/patroni"
 patronictl_bin_path: "/usr/local/bin/patronictl"
-# patronictl_bin_path: "/var/lib/pgsql/.local/bin/patronictl"
-# patronictl_bin_path: "/usr/bin/patronictl"
-
-# Application database name for replication
-# app_database: appdb
-
-# Database names
-# monitor_database: monitor
-# primary_database: ha
-# secondary_database: ha
-# secondary2_database: ha
-
-# Hostnames
-# monitor_hostname: "postgres-monitor"
-# primary_hostname: "postgres-ha01"
-# secondary_hostname: "postgres-ha02"
-# secondary2_hostname: "postgres-ha03"
-
-# install_secondary2: true
-# Package name
 
 # Patroni prerequistes
 urllib3_ver1: 1.19.1

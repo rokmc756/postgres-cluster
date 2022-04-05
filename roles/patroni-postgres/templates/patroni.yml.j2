@@ -1,10 +1,10 @@
 scope: vmtz_patroni_cluster
 name: '{{ inventory_hostname }}'
 restapi:
-  listen: '{{ hostvars[inventory_hostname]['ansible_eth2']['ipv4']['address'] }}:8008'
-  connect_address: '{{ hostvars[inventory_hostname]['ansible_eth2']['ipv4']['address'] }}:8008'
+  listen: '{{ hostvars[inventory_hostname]['ansible_eth1']['ipv4']['address'] }}:8008'
+  connect_address: '{{ hostvars[inventory_hostname]['ansible_eth1']['ipv4']['address'] }}:8008'
 etcd:
-  hosts: '{{ hostvars['co7-node01']['ansible_eth2']['ipv4']['address'] }}:2379,{{ hostvars['co7-node02']['ansible_eth2']['ipv4']['address'] }}:2379,{{ hostvars['co7-node03']['ansible_eth2']['ipv4']['address'] }}:2379'
+  hosts: '{{ hostvars['co7-node01']['ansible_eth1']['ipv4']['address'] }}:2379,{{ hostvars['co7-node02']['ansible_eth1']['ipv4']['address'] }}:2379,{{ hostvars['co7-node03']['ansible_eth1']['ipv4']['address'] }}:2379'
 bootstrap:
   dcs:
     ttl: 30
@@ -52,9 +52,9 @@ bootstrap:
     - encoding: UTF8
     - data-checksums
   pg_hba:
-    - host replication replicator {{ hostvars['co7-node01']['ansible_eth2']['ipv4']['address'] }}/32 md5
-    - host replication replicator {{ hostvars['co7-node02']['ansible_eth2']['ipv4']['address'] }}/32 md5
-    - host replication replicator {{ hostvars['co7-node03']['ansible_eth2']['ipv4']['address'] }}/32 md5
+    - host replication replicator {{ hostvars['co7-node01']['ansible_eth1']['ipv4']['address'] }}/32 md5
+    - host replication replicator {{ hostvars['co7-node02']['ansible_eth1']['ipv4']['address'] }}/32 md5
+    - host replication replicator {{ hostvars['co7-node03']['ansible_eth1']['ipv4']['address'] }}/32 md5
     - host all all 0.0.0.0/0 md5
   users:
     admin:
@@ -63,8 +63,8 @@ bootstrap:
         - createrole
         - createdb
 postgresql:
-  listen: '{{ hostvars[inventory_hostname]['ansible_eth2']['ipv4']['address'] }}:5432'
-  connect_address: '{{ hostvars[inventory_hostname]['ansible_eth2']['ipv4']['address'] }}:5432'
+  listen: '{{ hostvars[inventory_hostname]['ansible_eth1']['ipv4']['address'] }}:5432'
+  connect_address: '{{ hostvars[inventory_hostname]['ansible_eth1']['ipv4']['address'] }}:5432'
   data_dir: /var/lib/pgsql/patroni_data
   pgpass: /var/lib/pgsql/pgpass0
   authentication:

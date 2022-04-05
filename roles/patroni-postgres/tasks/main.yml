@@ -1,5 +1,4 @@
 ---
-
 # Install VMWare Postgres for Red Hat / CentOS
 
 # for now fail if it's not a Red Hat based system
@@ -8,13 +7,13 @@
   when: ansible_os_family != 'RedHat'
 
 - name: Installation of vmware postgres for Red Hat / CentOS
-  include: patroni-postgres-install.yml
+  include: install.yml
   tags: install
 
 - name: Uninstallation of vmware postgres for Red Hat / CentOS
-  include: patroni-postgres-uninstall.yml
+  include: uninstall.yml
   tags: uninstall
 
 - name: Upgrade of vmware postgres for Red Hat / CentOS
-  include: patroni-postgres-upgrade.yml
+  include: upgrade.yml
   tags: upgrade

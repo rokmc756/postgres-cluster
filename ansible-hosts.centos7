@@ -4,43 +4,43 @@ remote_machine_username="jomoon"
 remote_machine_password="changeme"
 
 # For pgsql-9.4-bdr
-#[monitor]
-#postgres-haproxy01 ansible_ssh_host=192.168.0.79
-#postgres-haproxy02 ansible_ssh_host=192.168.0.80
-
-#[postgres-ha]
-#postgres-ha01 ansible_ssh_host=192.168.0.81
-#postgres-ha02 ansible_ssh_host=192.168.0.82
-#postgres-ha03 ansible_ssh_host=192.168.0.83
-
-#[master]
-#postgres-ha01 ansible_ssh_host=192.168.0.81
-
-#[slave]
-#postgres-ha02 ansible_ssh_host=192.168.0.82
-#postgres-ha03 ansible_ssh_host=192.168.0.83
-
-#
-# For pgautofailover
 [monitor]
 co7-master ansible_ssh_host=192.168.0.81
+co7-slave ansible_ssh_host=192.168.0.82
 
-[primary]
+[postgres-ha]
 co7-node01 ansible_ssh_host=192.168.0.83
-
-[secondary]
 co7-node02 ansible_ssh_host=192.168.0.84
 co7-node03 ansible_ssh_host=192.168.0.85
 
-# For patroni cluster
+[master]
+co7-node01 ansible_ssh_host=192.168.0.83
+
+[slave]
+co7-node02 ansible_ssh_host=192.168.0.84
+co7-node03 ansible_ssh_host=192.168.0.85
+
+#
+# For pgautofailover
+#[monitor]
+#co7-master ansible_ssh_host=192.168.0.81
+
+#[primary]
+#co7-node01 ansible_ssh_host=192.168.0.83
+
+#[secondary]
+#co7-node02 ansible_ssh_host=192.168.0.84
+#co7-node03 ansible_ssh_host=192.168.0.85
+
+#For Patroni Cluster
 #[postgres-ha]
-#rh7-node01 ansible_ssh_host=192.168.0.63
-#rh7-node02 ansible_ssh_host=192.168.0.64
-#rh7-node03 ansible_ssh_host=192.168.0.65
+#co7-node01 ansible_ssh_host=192.168.0.83
+#co7-node02 ansible_ssh_host=192.168.0.84
+#co7-node03 ansible_ssh_host=192.168.0.85
 
 #[master]
-#rh7-node01 ansible_ssh_host=192.168.0.63
+#co7-node01 ansible_ssh_host=192.168.0.83
 
 #[slave]
-#rh7-node02 ansible_ssh_host=192.168.0.64
-#rh7-node03 ansible_ssh_host=192.168.0.65
+#co7-node02 ansible_ssh_host=192.168.0.84
+#co7-node03 ansible_ssh_host=192.168.0.85
