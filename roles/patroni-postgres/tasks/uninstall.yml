@@ -141,9 +141,36 @@
   register: pip3_patroni_module_uninstalled
   ignore_errors: yes
   when:
-    - major_version == 13
+    - major_version >= 13
     - inventory_hostname in groups['postgres-ha']
 
+#
+- name: Uninstall pyopenssl module on all three nodes
+  become: true
+  become_user: root
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 uninstall pyopenssl -y )
+  async: 120
+  poll: 5
+  register: pyopenssl_uninstalled
+  ignore_errors: yes
+  when:
+    - major_version >= 14
+    - inventory_hostname in groups['postgres-ha']
+
+#
+- name: Uninstall pyrsistent module on all three nodes
+  become: true
+  become_user: root
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 uninstall pyrsistent -y )
+  async: 120
+  poll: 5
+  register: pyrsistent_uninstalled
+  ignore_errors: yes
+  when:
+    - major_version >= 14
+    - inventory_hostname in groups['postgres-ha']
+
+#
 - name: Uninstall wheel module on all three nodes
   become: true
   become_user: root
@@ -153,7 +180,7 @@
   register: pip3_wheel_module_uninstalled
   ignore_errors: yes
   when:
-    - major_version == 13
+    - major_version >= 13
     - inventory_hostname in groups['postgres-ha']
 
 #
@@ -166,7 +193,7 @@
   register: pip3_psycopg2_binary_module_uninstalled
   ignore_errors: yes
   when:
-    - major_version == 13
+    - major_version >= 13
     - inventory_hostname in groups['postgres-ha']
 
 #
@@ -205,7 +232,7 @@
 - name: Uninstall VMware Postgres RPM package on all hosts as root
   become: true
   yum:
-    name: vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}
+    name: "{{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}"
     state: absent
   async: 120
   poll: 5
@@ -214,7 +241,7 @@
 - name: Delete the vmwawre-postgres rpm file to all hosts in cluster
   become: true
   file:
-    path: /home/jomoon/vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm
+    path: /home/jomoon/{{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm
     state: absent
 
 #

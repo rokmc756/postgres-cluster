@@ -2,6 +2,18 @@
 # Install pg_auto_failover for RHEL or CentOS
 #
 
+- name: Alternative python version to python2
+  become: true
+  become_user: root
+  command: alternatives --set python /usr/bin/python2
+  register: python_version_alternative
+
+- debug:
+    var: python_version_alternative
+
+#- meta: end_play
+
+
 - name: Install rpm packages of dependenies to need installing packages regarding kubernates
   become: true
   become_user: root
@@ -14,13 +26,13 @@
     - firewalld
     - python3
     - python3-libselinux
+#    - python-psycopg2
+#    - python27-python-psycopg2
+#    - python3-policycoreutils
 #    - python2-libselinux
 #    - libselinux-python2
 #    - policycoreutils-python-utils
 #    - libselinux-python3
-#    - python3-policycoreutils
-
-#- meta: end_play
 
 - name: Start and enable firewalld.
   become: true

@@ -25,7 +25,7 @@
 
 - hosts: all
   become: yes
-  become_user: jomoon
+  become_user: postgres
   gather_facts: False
   tasks:
     - name: Check .ssh local directory exists
@@ -43,13 +43,13 @@
         msg: "One or more of the: sshpass, ssh-keygen, ssh-copy-id are missing on this machine. Please install them - using your distribution's recommended method - before continuing."
       when: os_tools_exist.rc != 0
 
-    - name: Create ~/.ssh directory in jomoon home
+    - name: Create ~/.ssh directory in gpadmin home
       file:
         path: "~/.ssh"
         state: directory
         mode: "0700"
-        owner: jomoon
-        group: jomoon
+        owner: gpadmin
+        group: gpadmin
       register: ssh_directory_creation
       when: ssh_directory_exists_check is defined and ssh_directory_exists_check.stat.exists == false
 
@@ -85,7 +85,7 @@
         - ssh_copy_id_execution.rc != 0
 
 - hosts: all
-  become_user: jomoon
+  become_user: postgres
   gather_facts: false
   tasks:
     - name: Check ssh to remote hosts works

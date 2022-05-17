@@ -1,16 +1,19 @@
 ---
 
 # files/vmware-postgres-12.7-0.el7.x86_64.rpm
+# files/vmware-postgres14-14.1-1.el7.x86_64.rpm
+package_name: vmware-postgres
 major_version: 13
 minor_version: 3
 patch_version: 0
 rhel_version: el7
 database_name: vmware_postgres_testdb
 username: postgres
-patroni_bin_path: "/usr/local/bin/patroni"
-patronictl_bin_path: "/usr/local/bin/patronictl"
+patroni_path: "/usr/local/bin/patroni"
+patronictl_path: "/usr/local/bin/patronictl"
+synchronous_mode: no
 
-# Patroni prerequistes
+# Patroni prerequistes =< vmware-postgres13
 urllib3_ver1: 1.19.1
 urllib3_ver2: 1.21
 six_ver: 1.7

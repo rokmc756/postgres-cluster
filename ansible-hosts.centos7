@@ -2,23 +2,24 @@
 ssh_key_filename="id_rsa"
 remote_machine_username="jomoon"
 remote_machine_password="changeme"
+# ansible_python_interpreter="/usr/bin/python3"
 
 # For pgsql-9.4-bdr
-[monitor]
-co7-master ansible_ssh_host=192.168.0.81
-co7-slave ansible_ssh_host=192.168.0.82
+#[monitor]
+#co7-master ansible_ssh_host=192.168.0.81
+#co7-slave ansible_ssh_host=192.168.0.82
 
-[postgres-ha]
-co7-node01 ansible_ssh_host=192.168.0.83
-co7-node02 ansible_ssh_host=192.168.0.84
-co7-node03 ansible_ssh_host=192.168.0.85
+#[postgres-ha]
+#co7-node01 ansible_ssh_host=192.168.0.83
+#co7-node02 ansible_ssh_host=192.168.0.84
+#co7-node03 ansible_ssh_host=192.168.0.85
 
-[master]
-co7-node01 ansible_ssh_host=192.168.0.83
+#[master]
+#co7-node01 ansible_ssh_host=192.168.0.83
 
-[slave]
-co7-node02 ansible_ssh_host=192.168.0.84
-co7-node03 ansible_ssh_host=192.168.0.85
+#[slave]
+#co7-node02 ansible_ssh_host=192.168.0.84
+#co7-node03 ansible_ssh_host=192.168.0.85
 
 #
 # For pgautofailover
@@ -44,3 +45,18 @@ co7-node03 ansible_ssh_host=192.168.0.85
 #[slave]
 #co7-node02 ansible_ssh_host=192.168.0.84
 #co7-node03 ansible_ssh_host=192.168.0.85
+
+# pgBackrest
+[postgres-ha]
+co7-node01 ansible_ssh_host=192.168.0.83
+co7-node02 ansible_ssh_host=192.168.0.84
+co7-node03 ansible_ssh_host=192.168.0.85
+
+[repository]
+co7-master ansible_ssh_host=192.168.0.81
+
+#[master]
+#co7-master ansible_ssh_host=192.168.0.81
+
+#[slave]
+#co7-slave ansible_ssh_host=192.168.0.82

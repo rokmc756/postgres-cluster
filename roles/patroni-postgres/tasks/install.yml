@@ -1,6 +1,24 @@
 ---
 # Install Patroni Cluster for RHEL or CentOS 7.x
 #
+- name: Install rpm packages of firewalld
+  become: true
+  become_user: root
+  yum:
+    name: "{{ item }}"
+    state: present
+  ignore_errors: yes
+  register: firewalld_installed
+  with_items:
+    - firewalld
+#    - python-psycopg2
+#    - python27-python-psycopg2
+#    - python3-policycoreutils
+#    - python2-libselinux
+#    - libselinux-python2
+#    - policycoreutils-python-utils
+#    - libselinux-python3
+
 - name: Stop and disable firewalld
   become: true
   systemd:
@@ -49,13 +67,13 @@
 
 #
 - name: Copy the vmwawre-postgres rpm file to all hosts in cluster
-  copy: src=vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm dest=/home/jomoon/vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm mode=0644 owner=jomoon group=jomoon
+  copy: src={{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm dest=/home/jomoon/{{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm mode=0644 owner=jomoon group=jomoon
 
 #
 - name: Install VMware Postgres on all hosts as root
   become: true
   yum:
-    name: /home/jomoon/vmware-postgres-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm
+    name: /home/jomoon/{{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm
     state: present
   async: 120
   poll: 5
@@ -153,7 +171,7 @@
   poll: 5
   register: pip3_wheel_module_installed
   when:
-    - major_version == 13
+    - major_version >= 13
     - inventory_hostname in groups['postgres-ha']
 
 - debug: msg={{ pip3_wheel_module_installed }}
@@ -166,13 +184,52 @@
   poll: 5
   register: pip3_psycopg2_binary_module_installed
   when:
-    - major_version == 13
+    - major_version >= 13
     - inventory_hostname in groups['postgres-ha']
 
 - debug: msg={{ pip3_psycopg2_binary_module_installed }}
 
 #
-- name: Install patroni modules on all three nodes for vmware-postgres 13.x version
+- name: Install pyopenssl modle on all three nodes for {{ package_name }} version
+  become: true
+  become_user: root
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 install pyopenssl )
+  async: 120
+  poll: 5
+  register: pyopenssl_module_installed
+  when:
+    - major_version >= 14
+    - inventory_hostname in groups['postgres-ha']
+
+#
+- name: Install pyrsistent modle on all three nodes for {{ package_name }} version
+  become: true
+  become_user: root
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 install pyrsistent==0.16.0 )
+  async: 120
+  poll: 5
+  register: pyrsistent_module_installed
+  when:
+    - major_version >= 14
+    - inventory_hostname in groups['postgres-ha']
+
+#
+- name: Install pyopenssl modle on all three nodes for {{ package_name }} version
+  become: true
+  become_user: root
+  shell: ( export PATH=$PATH:/usr/local/bin && pip3 install pyopenssl )
+  async: 120
+  poll: 5
+  register: pyopenssl_module_installed
+  when:
+    - major_version >= 14
+    - inventory_hostname in groups['postgres-ha']
+
+
+
+
+#
+- name: Install patroni modules on all three nodes for {{ package_name }} version
   become: true
   become_user: root
   shell: ( export PATH=$PATH:/usr/local/bin && pip3 install patroni )
@@ -180,7 +237,7 @@
   poll: 5
   register: patroni_module_install_verified
   when:
-    - major_version == 13
+    - major_version >= 13
     - inventory_hostname in groups['postgres-ha']
 
 #
@@ -244,6 +301,7 @@
 #
 - name: Set data directory for patroni cluster
   become: true
+  become_user: postgres
   file: path=/var/lib/pgsql/patroni_data state=directory owner=postgres group=postgres
 
 #
@@ -284,26 +342,26 @@
 #- name: Run the patronictl command-line utility to view the cluster state with Patroni started on all three nodes,
 #  become: true
 #  become_user: postgres
-#  shell: ( {{ patronictl_bin_path }} -c /var/lib/pgsql/patroni.yml list )
+#  shell: ( {{ patronictl_path }} -c /var/lib/pgsql/patroni.yml list )
 #  register: patroni_listed
 #  when: inventory_hostname in groups["postgres-ha"]
 #
 #- debug: msg={{ patroni_listed }}
 
 #
-- name: Remove clsuter on master
+- name: Remove cluster
   become: true
   become_user: postgres
   ignore_errors: true
   shell: |
-    export LC_ALL=en_US.utf-8 && {{ patronictl_bin_path }} -c /var/lib/pgsql/patroni.yml remove vmtz_patroni_cluster <<EOF
+    export LC_ALL=en_US.utf-8 && {{ patronictl_path }} -c /var/lib/pgsql/patroni.yml remove vmtz_patroni_cluster <<EOF
     vmtz_patroni_cluster
     Yes I am aware
     EOF
   async: 180
   poll: 5
   register: patroni_removed
-  when: inventory_hostname in groups["master"]
+  when: inventory_hostname == "co7-node01"
 
 - name: Pause for 1 minutes to wait for compleiting initializaion of patroni cluster
   pause:
@@ -317,7 +375,7 @@
   become_user: postgres
   ignore_errors: true
   shell: |
-    export LC_ALL=en_US.utf-8 && {{ patronictl_bin_path }} -c /var/lib/pgsql/patroni.yml reinit vmtz_patroni_cluster <<EOF
+    export LC_ALL=en_US.utf-8 && {{ patronictl_path }} -c /var/lib/pgsql/patroni.yml reinit vmtz_patroni_cluster <<EOF
     {{ inventory_hostname }}
     y
     y
@@ -341,7 +399,7 @@
 - name: Run the patronictl command-line utility to view the cluster state with Patroni started on all three nodes,
   become: true
   become_user: postgres
-  shell: ( export LC_ALL=en_US.utf-8 && {{ patronictl_bin_path }} -c /var/lib/pgsql/patroni.yml list )
+  shell: ( export LC_ALL=en_US.utf-8 && {{ patronictl_path }} -c /var/lib/pgsql/patroni.yml list )
   register: patroni_listed
   when: inventory_hostname in groups["postgres-ha"]
 

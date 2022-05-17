@@ -1,5 +1,4 @@
 # add the IP address, username and hostname of the target hosts here
-
 USERNAME=jomoon
 COMMON="yes"
 ANSIBLE_HOST_PASS="rmsidwoalfh"

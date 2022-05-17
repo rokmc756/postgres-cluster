@@ -1,6 +1,7 @@
 ---
 - hosts: all
   roles:
-    - pgsql94-bdr
+    - pgbackrest
 #    - patroni-postgres
 #    - pgfailover-postgres
+#    - pgsql94-bdr

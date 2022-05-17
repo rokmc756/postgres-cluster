@@ -1,0 +1,78 @@
+- hosts: all
+  become: yes
+  gather_facts: true
+  tasks:
+    - name: "Remove sudo line in bash_history file"
+      become_user: "{{ sudo_user }}"
+      lineinfile:
+        path: /home/{{ sudo_user }}/.bash_history
+        regexp: "^sudo"
+        state: absent
+        backup: yes
+
+    - name: "Remove group to /etc/sudoers file without password"
+      become_user: root
+      lineinfile:
+        path: /etc/sudoers
+        regexp: '^%wheel'
+        state: absent
+        backup: yes
+
+    - name: "Delete user from 'wheel' group"
+      become_user: root
+      replace:
+        path: /etc/group
+        regexp: ",{{ sudo_user }}"
+        replace: ""
+
+        #- name: "Uninstall sudo package"
+        #yum:
+        #name: "{{ item }}"
+        #state: absent
+        #with_items:
+        #- sudo
+        #become: true
+        #become_method: su
+        #become_user: root
+
+    - name: "Remove sudo user from /etc/sudoers.d/90-cloud-init-users"
+      become_user: root
+      lineinfile:
+        path: /etc/sudoers.d/90-cloud-init-users
+        regexp: "{{ sudo_user }}"
+        state: absent
+        backup: yes
+
+    - name: "Remove the authorized_keys of inactive users if any"
+      become_user: "{{ sudo_user }}"
+      authorized_key:
+        user: "{{ item }}"
+        key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_rsa.pub') }}"
+        state: absent
+      with_items: "{{ sudo_user }}"
+
+    - name: "Remove user inactive users"
+      become_user: root
+      user:
+        name: "{{ sudo_user }}"
+        state: absent
+        remove: no        # Remove home user if yes; default no
+        force: yes        # works with remove is yes
+      with_items: "{{ sudo_user }}"
+
+    - name: "Remove the inventory into /etc/hosts"
+      become_user: root
+      lineinfile:
+        dest: /etc/hosts
+        regexp: "{{ hostvars[item]['ansible_eth0']['ipv4']['address'] }}"
+        state: absent
+      when: hostvars[item].ansible_default_ipv4.address is defined
+      with_items: "{{ groups['all'] }}"
+
+    - name: "Uninstall epel-release & sshpass"
+      yum:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - "epel-release"
+        - "sshpass"

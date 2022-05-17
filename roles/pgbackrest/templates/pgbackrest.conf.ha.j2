@@ -1,0 +1,9 @@
+[main]
+pg1-path=/var/lib/pgsql/patroni_data
+pg1-socket-path=/var/lib/pgsql/patroni_data
+pg1-port=5532
+
+[global]
+log-level-file=detail
+repo1-host={{ hostvars['co7-master']['ansible_eth0']['ipv4']['address'] }}
+repo1-host-user=postgres
