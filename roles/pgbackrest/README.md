@@ -25,8 +25,9 @@ For users who are new to PostgreSQL and thinking of migrating to Postgres, we wo
 ### Supported Operrating Systems confirmed by Jack Moon so far.
 - CentOS 7
 
-## Prerequistes of deploying pgbackrest by ansible
-
+## Prerequistes of deploying pgbackrest by ansible playbook
+- Patroni cluster should be deployed with non synchronous mode.
+- vmware-postgres-13.x version are only supporetd so far.
 
 ## How to install pgbackrest for patroni cluster
 #### Clone pgbackrest ansible playbook from github
