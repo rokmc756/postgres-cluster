@@ -25,6 +25,8 @@ For users who are new to PostgreSQL and thinking of migrating to Postgres, we wo
 ### Supported Operrating Systems confirmed by Jack Moon so far.
 - CentOS 7
 
+## Prerequistes of deploying pgbackrest by ansible
+
 
 ## How to install Patroni Cluster for VMware Postgres
 #### Clone postgres-cluster ansible playbook from github
