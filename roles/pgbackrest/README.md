@@ -3,7 +3,9 @@ pgBackRest aims to be a reliable, easy-to-use backup and restore solution that c
 
 ## The architecture of pgBackrest
 
+
 <img src="https://github.com/rokmc756/postgres-cluster/blob/main/roles/pgbackrest/images/pgBackRest.png" width="80%" height="80%">
+
 
 
 ## Advantages of using pgBackRest
