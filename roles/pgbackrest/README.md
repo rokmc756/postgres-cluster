@@ -28,10 +28,10 @@ For users who are new to PostgreSQL and thinking of migrating to Postgres, we wo
 ## Prerequistes of deploying pgbackrest by ansible
 
 
-## How to install Patroni Cluster for VMware Postgres
-#### Clone postgres-cluster ansible playbook from github
+## How to install pgbackrest for patroni cluster
+#### Clone pgbackrest ansible playbook from github
 ~~~
-$ git clone https://github.com/rokmc756/pgbackrest
+$ git clone https://github.com/rokmc756/postgres-cluster/roles/pgbackrest
 ~~~
 
 #### Modify your hostnames and ip addresses in ansible-hosts file.
