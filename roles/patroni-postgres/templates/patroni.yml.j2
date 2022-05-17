@@ -46,10 +46,8 @@ bootstrap:
         archive_command: mkdir -p ../wal_archive && test ! -f ../wal_archive/%f && cp %p ../wal_archive/%f
       recovery_conf:
         restore_command: cp ../wal_archive/%f %p
-    synchronous_mode: false
-    synchronous_mode_strict: false
-    # synchronous_mode: true
-    # synchronous_mode_strict: true
+    synchronous_mode: {{ sync_mode }}
+    synchronous_mode_strict: {{ sync_mode }}
   initdb:
     - encoding: UTF8
     - data-checksums

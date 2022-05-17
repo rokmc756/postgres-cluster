@@ -1,6 +1,6 @@
 ---
 
-# files/vmware-postgres-12.7-0.el7.x86_64.rpm
+# files/vmware-postgres-13.3-0.el7.x86_64.rpm
 # files/vmware-postgres14-14.1-1.el7.x86_64.rpm
 package_name: vmware-postgres
 major_version: 13
@@ -11,7 +11,7 @@ database_name: vmware_postgres_testdb
 username: postgres
 patroni_path: "/usr/local/bin/patroni"
 patronictl_path: "/usr/local/bin/patronictl"
-synchronous_mode: no
+sync_mode: false      # false is for pgbackrest, not found yet how does pgbackrest interactive with synchronous mode in patroni cluster
 
 # Patroni prerequistes =< vmware-postgres13
 urllib3_ver1: 1.19.1
