@@ -2,7 +2,7 @@
 pgBackRest aims to be a reliable, easy-to-use backup and restore solution that can seamlessly scale up to the largest databases and workloads by utilizing algorithms that are optimized for database-specific requirements.
 
 ## The architecture of pgBackrest
-![alt text](https://github.com/rokmc756/postgres-cluster/blob/main/roles/pgbackrest/images/pgBackRest.png)
+!![alt text](https://github.com/rokmc756/postgres-cluster/blob/main/roles/pgbackrest/images/pgBackRest.png)
 
 ## Advantages of using pgBackRest
 For users who are new to PostgreSQL and thinking of migrating to Postgres, we would like to talk about some of the advantages in using pgBackRest as a preferred backup tool for postgres. These advantages should prove the reason why pgBackRest is the next generation backup tool that is totally unique from a several list of backup tools of different databases in the world today.
