@@ -3,12 +3,15 @@
 
 #
 - name: Copy the vmwawre-postgres rpm file to all hosts in cluster
+  become: true
+  become_user: root
   copy: src={{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm dest=/home/jomoon/{{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm mode=0644 owner=jomoon group=jomoon
   when: inventory_hostname in groups['repository']
 
 #
 - name: Install VMware Postgres on all hosts as root
   become: true
+  become_user: root
   yum:
     name: /home/jomoon/{{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm
     state: present
@@ -45,6 +48,20 @@
     - { regexp: '^    archive_mode:*', line: '    archive_command: "pgbackrest --stanze=main archive-push %p"', state: present }
   when: inventory_hostname in groups['postgres-ha']
 
+#
+#- name: Replace string for traditional archive and restore command
+#  become: true
+#  become_user: root
+#  replace:
+#    path: /var/lib/pgsql/patroni.yml
+#    regexp: '{{ item.regexp }}'
+#    replace: "{{ item.replace }}"
+#  with_items:
+#    - { regexp: '^        archive_command:', replace: '#        archive_command:' }
+#    - { regexp: '^        restore_command:', replace: '#        restore_command:' }
+#  when: inventory_hostname in groups['postgres-ha']
+
+#
 # Commented due to taking too much time
 #- name: Install rpm packages of pgBackrest dependencies
 #  become: true
@@ -60,6 +77,7 @@
 #    - perl-Digest-SHA
 #    - perl-JSON-PP
 
+#
 - name: Create directories and files in all nodes
   become: true
   become_user: root
@@ -77,27 +95,44 @@
     - { path: '/var/lib/pgsql/.ssh', state: 'directory', owner: 'postgres', group: 'postgres', mode: '700' }
     - { path: '/var/lib/pgsql/.ssh/authorized_keys', state: 'touch', owner: 'postgres', group: 'postgres', mode: '640' }
 
-- name: Exchange ssh kes to allow password-less login between all nodes
+
+#
+- name: Allow ssh connection for postgres user in SELinux policy
+  become: true
+  become_user: root
+  command: restorecon -FRvv /var/lib/pgsql/.ssh/
+
+#
+- name: Exchange ssh keys to allow password-less login between all nodes
   become: true
   become_user: postgres
   shell: |
     ssh-keygen -f /var/lib/pgsql/.ssh/id_rsa -t rsa -b 4096 -N "" <<EOF
     y
     EOF
-  when: inventory_hostname in groups['repository']
 
-- name: Copy Remote-To-Remote (from serverA to serverB)
+#
+- name: Fetch the keyfile from the node to master
   become: true
-  become_user: root
-  synchronize:
-    src: /var/lib/pgsql/.ssh/id_rsa.pub
-    dest: /var/lib/pgsql/.ssh/authorized_keys
-    owner: yes
-    group: yes
-    mode: push
-  delegate_to: co7-master
-  when: inventory_hostname in groups['postgres-ha']
+  become_user: postgres
+  fetch:
+    src: "/var/lib/pgsql/.ssh/id_rsa.pub"
+    dest: "/tmp/{{ansible_hostname}}-id_rsa.pub"
+    flat: yes
 
+#
+- name: Copy the key add to authorized_keys using Ansible module
+  become: true
+  become_user: postgres
+  authorized_key:
+    user: postgres
+    state: present
+    key: "{{ lookup('file','/tmp/{{item}}-id_rsa.pub')}}"
+  when: "{{ item != ansible_hostname }}"
+  with_items: 
+    - "{{ groups['all'] }}"
+
+#
 #- name: ssh-keyscan for known_hosts file
 #  become: true
 #  become_user: postgres
@@ -105,40 +140,56 @@
 #  register: keyscan
 #  delegate_to: co7-master
 #  when: inventory_hostname in groups['postgres-ha']
+#
+#- name: ssh-keyscan for known_hosts file
+#  become: true
+#  become_user: postgres
+#  command: ssh-keyscan -H co7-master >> ~/.ssh/known_hosts
+#  register: keyscan
+#  when: inventory_hostname in groups['postgres-ha']
 
+#
 - name: The ssh-keyscan for known_hosts file
   become: true
   become_user: postgres
   command: /usr/bin/ssh-keyscan -t ecdsa {{ inventory_hostname }}
-  register: keyscan
+  register: keyscan_repo
   delegate_to: co7-master
+  when: inventory_hostname in groups['postgres-ha']
+
+#
+- name: The ssh-keyscan for known_hosts file
+  become: true
+  become_user: postgres
+  command: /usr/bin/ssh-keyscan -t ecdsa co7-master
+  register: keyscan_nodes
   when: inventory_hostname in groups['postgres-ha']
 
 - name: Input key
   become: true
   become_user: postgres
   lineinfile:
-    path: ~/.ssh/known_hosts
+    path: /var/lib/pgsql/.ssh/known_hosts
     line: "{{ item }}"
     create: yes
   delegate_to: co7-master
   with_items:
-    - "{{ keyscan.stdout_lines }}"
+    - "{{ keyscan_repo.stdout_lines }}"
   when: inventory_hostname in groups['postgres-ha']
 
-#- name: Exchange ssh kes to allow password-less login between all nodes
-#  become: true
-#  become_user: root
-#  copy:
-#    src: "/var/lib/pgsql/.ssh/id_rsa.pub"
-#    dest: "/var/lib/pgsql/.ssh/authorized_keys"
-#    owner: postgres
-#    group: postgres
-#    mode: 640
-#    force: yes
-#    remote_src: yes
-#  when: inventory_hostname in groups['postgres-ha']
+#
+- name: Input key
+  become: true
+  become_user: postgres
+  lineinfile:
+    path: /var/lib/pgsql/.ssh/known_hosts
+    line: "{{ item }}"
+    create: yes
+  with_items:
+    - "{{ keyscan_nodes.stdout_lines }}"
+  when: inventory_hostname in groups['postgres-ha']
 
+#
 - name: Create repository location
   become: true
   become_user: root
@@ -185,15 +236,6 @@
   when: inventory_hostname in groups["postgres-ha"]
 
 #
-- name: Create the stanza on the repository host (only needs to be done on this host)
-  become: true
-  become_user: postgres
-  command: /usr/bin/pgbackrest --stanza=main --log-level-console=info stanza-create
-  register: stanza_created
-  when: inventory_hostname in groups['repository']
-
-#- debug: msg={{ stanza_created }}
-
 - name: Check the config on each of the two postgres hosts
   become: true
   become_user: postgres
@@ -203,9 +245,8 @@
 
 - debug: msg={{ patroni_listed }}
 
-- meta: end_play
-
-- name: Check the config on all postgres hosts
+#
+- name: Check the config on all postgres hosts. the difference in output. The WAL log will only be archived from the primary.
   become: true
   become_user: postgres
   command: /usr/bin/pgbackrest --stanza=main --log-level-console=info check
@@ -213,6 +254,18 @@
   when: inventory_hostname in groups['repository']
 
 - debug: msg={{ stanza_checked }}
+
+#
+- meta: end_play
+
+- name: Create the stanza on the repository host (only needs to be done on this host)
+  become: true
+  become_user: postgres
+  command: /usr/bin/pgbackrest --stanza=main --log-level-console=info stanza-create
+  register: stanza_created
+  when: inventory_hostname in groups['repository']
+
+- debug: msg={{ stanza_created }}
 
 #
 - name: Check the config on all postgres hosts. the difference in output. The WAL log will only be archived from the primary.
@@ -229,7 +282,7 @@
   become_user: postgres
   command: /usr/bin/pgbackrest --log-level-console=info --stanza=main backup
   register: backup_created
+  ignore_errors: yes
   when: inventory_hostname in groups['repository']
 
 - debug: msg={{ backup_created }}
-

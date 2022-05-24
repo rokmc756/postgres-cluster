@@ -1,6 +1,7 @@
 ---
 # Uninstall Patroni Cluster for RHEL or CentOS 7.x
 #
+
 - name: Stop services for patroni and etcd
   become: true
   systemd:
@@ -79,7 +80,7 @@
   ignore_errors: yes
   when: inventory_hostname in groups['postgres-ha']
 
-#- debug: msg={{ pg_autoctl_uninstall_verified }}
+- debug: msg={{ pg_autoctl_uninstall_verified }}
 
 #
 - name: UnInstall wheel pip module on all three nodes
@@ -92,7 +93,7 @@
   ignore_errors: yes
   when: inventory_hostname in groups['postgres-ha']
 
-#- debug: msg={{ pip3_wheel_installed }}
+- debug: msg={{ pip3_wheel_installed }}
 
 # become_user: root
 #- name: Delete pip3 version
@@ -117,7 +118,7 @@
   ignore_errors: yes
   when: inventory_hostname in groups['postgres-ha']
 
-#- debug: msg={{ pip3_typing_uninstalled }}
+- debug: msg={{ pip3_typing_uninstalled }}
 
 #
 - name: Uninstall setuptools rust on all three nodes
@@ -208,25 +209,25 @@
   when: inventory_hostname in groups['postgres-ha']
 
 #
-#- name: Uninstall RPM packages of the etcd and Patroni prerequisites on all three nodes
-#  become: true
-#  yum:
-#    name: "{{ item }}"
-#    state: absent
-#    skip_broken: yes
-#  async: 120
-#  poll: 5
-#  with_items:
-#    - python3
-#    - python3-devel
-#    - gcc
-#    - etcd
-#    - python-psycopg2
-#    - python3-pip
-#    - python34-setuptools
-#    - python27-python-setuptools
-#    - yamllint
-#    - daemonize
+- name: Uninstall RPM packages of the etcd and Patroni prerequisites on all three nodes
+  become: true
+  yum:
+    name: "{{ item }}"
+    state: absent
+    skip_broken: yes
+  async: 120
+  poll: 5
+  with_items:
+    - python3
+    - python3-devel
+    - gcc
+    - etcd
+    - python-psycopg2
+    - python3-pip
+    - python34-setuptools
+    - python27-python-setuptools
+    - yamllint
+    - daemonize
 
 #
 - name: Uninstall VMware Postgres RPM package on all hosts as root
@@ -236,6 +237,7 @@
     state: absent
   async: 120
   poll: 5
+
 
 #
 - name: Delete the vmwawre-postgres rpm file to all hosts in cluster
@@ -251,9 +253,9 @@
   shell: ( iptables -nL )
   register: iptables_rules_listed
 
-#- debug: msg={{ iptables_rules_listed.stdout }}
-#  tags:
-#    - print_debug
+- debug: msg={{ iptables_rules_listed.stdout }}
+  tags:
+    - print_debug
 
 #
 - name: Flush iptables rules

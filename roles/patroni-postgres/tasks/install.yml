@@ -19,6 +19,7 @@
 #    - policycoreutils-python-utils
 #    - libselinux-python3
 
+#
 - name: Stop and disable firewalld
   become: true
   systemd:
@@ -40,10 +41,12 @@
   shell: ( iptables -nL )
   register: iptables_rules_listed
 
+#
 - debug: msg={{ iptables_rules_listed.stdout }}
   tags:
     - print_debug
 
+#
 - name: Install the 'Development tools' package group for VMware Postgres Dependencies
   become: true
   yum:
@@ -52,6 +55,7 @@
   async: 360
   poll: 5
 
+#
 - name: Install the perl package for VMware Postgres Dependencies
   become: true
   yum:
@@ -225,9 +229,6 @@
     - major_version >= 14
     - inventory_hostname in groups['postgres-ha']
 
-
-
-
 #
 - name: Install patroni modules on all three nodes for {{ package_name }} version
   become: true
@@ -362,6 +363,7 @@
   poll: 5
   register: patroni_removed
   when: inventory_hostname == "co7-node01"
+#  when: inventory_hostname in groups["postgres-ha"]
 
 - name: Pause for 1 minutes to wait for compleiting initializaion of patroni cluster
   pause:
@@ -404,4 +406,3 @@
   when: inventory_hostname in groups["postgres-ha"]
 
 - debug: msg={{ patroni_listed }}
-

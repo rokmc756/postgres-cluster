@@ -1,9 +1,6 @@
 ---
 # Install pgBackrest for RHEL or CentOS 7.x
 #
-
-
-#
 - name: Stop the stanza on the repository host (only needs to be done on this host)
   become: true
   become_user: postgres
@@ -29,6 +26,7 @@
   become: true
   become_user: postgres
   command: /usr/bin/pgbackrest --stanza=main --log-level-console=info stanza-delete --force
+  ignore_errors: yes
   register: stanza_deleted
   when: inventory_hostname in groups['repository']
 
@@ -39,6 +37,7 @@
   become: true
   become_user: postgres
   command: killall pgbackrest
+  ignore_errors: yes
   register: pgbackrest_killed
   when: inventory_hostname in groups['repository']
 
@@ -72,6 +71,7 @@
     path: "/var/lib/pgsql/{{ item }}"
     state: absent
   with_items:
+    - ".ssh/id_rsa"
     - ".ssh/id_rsa.pub"
     - ".ssh/authorized_keys"
     - ".ssh"
@@ -128,6 +128,18 @@
     - { regexp: "^    port: 5532", line: "    port: 5432", state: present }
   when: inventory_hostname in groups['postgres-ha']
 
+#- name: Replace string for traditional archive and restore command
+#  become: true
+#  become_user: root
+#  replace:
+#    path: /var/lib/pgsql/patroni.yml
+#    regexp: '{{ item.regexp }}'
+#    replace: "{{ item.replace }}"
+#  with_items:
+#    - { regexp: '^#        archive_command:', replace: '        archive_command:' }
+#    - { regexp: '^#        restore_command:', replace: '        restore_command:' }
+#  when: inventory_hostname in groups['postgres-ha']
+
 # Restart services for patroni
 - name: Reload and start systemd service of patroni
   become: true
@@ -148,19 +160,18 @@
 - debug: msg={{ patroni_listed }}
 
 #
-- name: Uninstall VMware Postgres on all hosts as root
-  become: true
-  yum:
-    name: "{{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}"
-    state: absent
-  async: 180
-  poll: 5
-  when: inventory_hostname in groups['repository']
+#- name: Uninstall VMware Postgres on all hosts as root
+#  become: true
+#  yum:
+#    name: "{{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}"
+#    state: absent
+#  async: 180
+#  poll: 5
+#  when: inventory_hostname in groups['repository']
 
 #
-- name: Remove the vmwawre-postgres rpm file to all hosts in cluster
-  file:
-    path: /home/jomoon/{{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm
-    state: absent
-  when: inventory_hostname in groups['repository']
-
+#- name: Remove the vmwawre-postgres rpm file to all hosts in cluster
+#  file:
+#    path: /home/jomoon/{{ package_name }}-{{ major_version }}.{{ minor_version }}-{{ patch_version }}.{{ rhel_version }}.x86_64.rpm
+#    state: absent
+#  when: inventory_hostname in groups['repository']
