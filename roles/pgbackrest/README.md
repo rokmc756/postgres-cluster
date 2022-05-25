@@ -90,6 +90,7 @@ $ make install
 
 
 ## Create the stanza on the repository host (only needs to be done on this host):
+~~~
 [postgres@co7-master ~]$ pgbackrest --stanza=main --log-level-console=info stanza-create
 
 [postgres@co7-node01 ~]$ patronictl -c patroni.yml list
@@ -101,14 +102,18 @@ $ make install
 | co7-node03  | 192.168.0.85:5532  | Replica | running | 12 |         0 |
 +-------------+--------------------+---------+---------+----+-----------+
 
-
 [postgres@co7-master ~]$ pgbackrest --stanza=main --log-level-console=info check
+
 Note the difference in output. The WAL log will only be archived from the primary.
+~~~
 
 ## Finally, let's create a backup (must be run from repository host):
+~~~
 [postgres@co7-master ~$ pgbackrest --log-level-console=info --stanza=main backup
+~~~
 
 ## If we check the repository location, you will see the backup files:
+~~~
 [postgres@co7-master ~]$ cd /var/lib/pgbackrest/
 [postgres@co7-master ~]$ ls
 archive  backup
@@ -127,15 +132,22 @@ backup.manifest  backup.manifest.copy  pg_data
 backup_label.gz      global                   pg_dynshmem            pg_ident.conf.backup.gz  pg_logical    pg_replslot   pg_stat      pg_tblspc      pg_wal                   postgresql.base.conf.backup.gz  postgresql.conf.gz
 base                 patroni.dynamic.json.gz  pg_hba.conf.backup.gz  pg_ident.conf.gz         pg_multixact  pg_serial     pg_stat_tmp  pg_twophase    pg_xact                  postgresql.base.conf.gz
 current_logfiles.gz  pg_commit_ts             pg_hba.conf.gz         pg_log                   pg_notify     pg_snapshots  pg_subtrans  PG_VERSION.gz  postgresql.auto.conf.gz  postgresql.conf.backup.gz
+~~~
 
 ## Deleting a Stanza -  Stop pgbackrest. There is no active daemon for pgbackrest but this command will prevent any future backups from launching.
+~~~
 [postgres@postgres_node_1 ~]$ pgbackrest --stanza=main --log-level-console=info stop
+~~~
 
 ## Stop all Patroni nodes
+~~~
 [postgres@co7-node0x ~]$ systemctl stop patroni
+~~~
 
 ##  Delete the stanza
+~~~
 [postgres@co7-master~ ]$ pgbackrest --stanza=main --log-level-console=info stanza-delete
+~~~
 
 ## How to uninstall pgbackrest for patroni cluster
 ~~~
