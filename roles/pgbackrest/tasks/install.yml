@@ -245,6 +245,8 @@
 
 - debug: msg={{ patroni_listed }}
 
+- meta: end_play
+
 #
 - name: Check the config on all postgres hosts. the difference in output. The WAL log will only be archived from the primary.
   become: true
@@ -256,7 +258,6 @@
 - debug: msg={{ stanza_checked }}
 
 #
-- meta: end_play
 
 - name: Create the stanza on the repository host (only needs to be done on this host)
   become: true

@@ -9,8 +9,7 @@ pgBackRest aims to be a reliable, easy-to-use backup and restore solution that c
 
 
 ## Advantages of using pgBackRest
-For users who are new to PostgreSQL and thinking of migrating to Postgres, we would like to talk about some of the advantages in using pgBackRest as a preferred backup tool for postgres. These advantages should prove the reason why pgBackRest is the next generation backup tool that is totally unique from a several list of backup tools of different databases in the world today.
-- pgBackRest is the most advanced Open Source backup tool that is also available in the PGDG (PostgreSQL Global Development Group) repository for downloads. No licensing or extra costs involved in using this tool.
+- The most advanced Open Source backup tool that is also available in the PGDG (PostgreSQL Global Development Group) repository for downloads. No licensing or extra costs involved in using this tool.
 - Supports Parallel backup that could stream compressed files to a local or a remote repository or to Cloud.
 - Supports Incremental and Differential backups.
 - Stream backups to Cloud - Supports AWS, Azure and GCS compatible object store.
@@ -36,7 +35,7 @@ For users who are new to PostgreSQL and thinking of migrating to Postgres, we wo
 ## How to install pgbackrest for patroni cluster
 #### Clone pgbackrest ansible playbook from github
 ~~~
-$ git clone https://github.com/rokmc756/postgres-cluster/roles/pgbackrest
+$ git clone https://github.com/rokmc756/postgres-cluster
 ~~~
 
 #### Modify your hostnames and ip addresses in ansible-hosts file.
@@ -88,6 +87,55 @@ $ vi setup-hosts.yml
 ~~~
 $ make install
 ~~~
+
+
+## Create the stanza on the repository host (only needs to be done on this host):
+[postgres@co7-master ~]$ pgbackrest --stanza=main --log-level-console=info stanza-create
+
+[postgres@co7-node01 ~]$ patronictl -c patroni.yml list
++-------------+--------------------+---------+---------+----+-----------+
+|    Member   |        Host        |  Role   |  State  | TL | Lag in MB |
++-------------+--------------------+---------+---------+----+-----------+
+| co7-node01  | 192.168.0.83:5532  | Leader  | running | 12 |           |
+| co7-node02  | 192.168.0.84:5532  | Replica | running | 12 |         0 |
+| co7-node03  | 192.168.0.85:5532  | Replica | running | 12 |         0 |
++-------------+--------------------+---------+---------+----+-----------+
+
+
+[postgres@co7-master ~]$ pgbackrest --stanza=main --log-level-console=info check
+Note the difference in output. The WAL log will only be archived from the primary.
+
+## Finally, let's create a backup (must be run from repository host):
+[postgres@co7-master ~$ pgbackrest --log-level-console=info --stanza=main backup
+
+## If we check the repository location, you will see the backup files:
+[postgres@co7-master ~]$ cd /var/lib/pgbackrest/
+[postgres@co7-master ~]$ ls
+archive  backup
+
+[postgres@co7-master~ ]$ cd backup
+[postgres@co7-master~ ]$ ls
+[postgres@co7-master~ ]$ ls
+20200629-213928F  backup.history  backup.info  backup.info.copy  latest
+
+[postgres@co7-master~ ]$ cd 20200629-213928F/
+[postgres@co7-master~ ]$ ls
+backup.manifest  backup.manifest.copy  pg_data
+
+[postgres@co7-master~ ]$ cd pg_data/
+[postgres@co7-master~ ]$ ls
+backup_label.gz      global                   pg_dynshmem            pg_ident.conf.backup.gz  pg_logical    pg_replslot   pg_stat      pg_tblspc      pg_wal                   postgresql.base.conf.backup.gz  postgresql.conf.gz
+base                 patroni.dynamic.json.gz  pg_hba.conf.backup.gz  pg_ident.conf.gz         pg_multixact  pg_serial     pg_stat_tmp  pg_twophase    pg_xact                  postgresql.base.conf.gz
+current_logfiles.gz  pg_commit_ts             pg_hba.conf.gz         pg_log                   pg_notify     pg_snapshots  pg_subtrans  PG_VERSION.gz  postgresql.auto.conf.gz  postgresql.conf.backup.gz
+
+## Deleting a Stanza -  Stop pgbackrest. There is no active daemon for pgbackrest but this command will prevent any future backups from launching.
+[postgres@postgres_node_1 ~]$ pgbackrest --stanza=main --log-level-console=info stop
+
+## Stop all Patroni nodes
+[postgres@co7-node0x ~]$ systemctl stop patroni
+
+##  Delete the stanza
+[postgres@co7-master~ ]$ pgbackrest --stanza=main --log-level-console=info stanza-delete
 
 ## How to uninstall pgbackrest for patroni cluster
 ~~~
