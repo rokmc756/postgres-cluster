@@ -108,12 +108,12 @@ $ make install
 Note the difference in output. The WAL log will only be archived from the primary.
 ~~~
 
-## Finally, let's create a backup (must be run from repository host):
+## Finally, create a backup ( must be run from repository host )
 ~~~
 [postgres@co7-master ~$ pgbackrest --log-level-console=info --stanza=main backup
 ~~~
 
-## If we check the repository location, you will see the backup files:
+## If we check the repository location, you will see the backup files
 ~~~
 [postgres@co7-master ~]$ cd /var/lib/pgbackrest/
 [postgres@co7-master ~]$ ls
@@ -135,7 +135,7 @@ base                 patroni.dynamic.json.gz  pg_hba.conf.backup.gz  pg_ident.co
 current_logfiles.gz  pg_commit_ts             pg_hba.conf.gz         pg_log                   pg_notify     pg_snapshots  pg_subtrans  PG_VERSION.gz  postgresql.auto.conf.gz  postgresql.conf.backup.gz
 ~~~
 
-## Deleting a Stanza -  Stop pgbackrest. There is no active daemon for pgbackrest but this command will prevent any future backups from launching.
+## Deleting a Stanza - Stop pgbackrest. There is no active daemon for pgbackrest but this command will prevent any future backups from launching.
 ~~~
 [postgres@postgres_node_1 ~]$ pgbackrest --stanza=main --log-level-console=info stop
 ~~~
