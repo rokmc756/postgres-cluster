@@ -29,7 +29,7 @@ pgBackRest aims to be a reliable, easy-to-use backup and restore solution that c
 - CentOS 7
 
 ## Prerequistes of deploying pgbackrest by ansible playbook
-- Patroni cluster should be deployed with non synchronous mode. If you want to install patroni cluster with ansible playbook, this link - https://github.com/rokmc756/postgres-cluster/tree/main/roles/patroni-postgres
+- Patroni cluster should be deployed with non synchronous mode. If you want to install patroni cluster with ansible playbook, refer this link, https://github.com/rokmc756/postgres-cluster/tree/main/roles/patroni-postgres
 - vmware-postgres-13.x version are only supporetd so far.
 
 ## How to install pgbackrest for patroni cluster
